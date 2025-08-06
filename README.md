@@ -328,11 +328,11 @@ The system is composed of 6 Docker services orchestrated with Docker Compose:
 
 ### Environment Configuration
 
-The project uses environment variables for configuration. Copy `env.sample` to `.env` to customize:
+The project uses environment variables for configuration. Copy `.env.sample` to `.env` to customize:
 
 ```bash
 # Copy sample environment file
-cp env.sample .env
+cp .env.sample .env
 
 # Edit configuration as needed
 vi .env
