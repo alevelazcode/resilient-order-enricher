@@ -1,0 +1,100 @@
+spring:
+  application:
+    name: resilient-order-worker
+
+  # MongoDB Configuration
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017}
+      database: ${MONGODB_DATABASE:order_worker}
+
+  # Redis Configuration
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: ${REDIS_TIMEOUT:3000ms}
+
+  webflux:
+    base-path: /
+
+server:
+  port: ${SERVER_PORT:8081}
+  error:
+    include-message: always
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+
+# Kafka Configuration
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+  topics:
+    orders: ${KAFKA_ORDERS_TOPIC:orders}
+  consumer:
+    group-id: ${KAFKA_CONSUMER_GROUP:order-worker-group}
+    auto-offset-reset: ${KAFKA_AUTO_OFFSET_RESET:earliest}
+    max-poll-records: ${KAFKA_MAX_POLL_RECORDS:10}
+
+# External API Configuration
+enricher-api:
+  base-url: ${ENRICHER_API_BASE_URL:http://localhost:8080}
+  timeout:
+    connect: ${ENRICHER_API_CONNECT_TIMEOUT:5000}
+    read: ${ENRICHER_API_READ_TIMEOUT:10000}
+    write: ${ENRICHER_API_WRITE_TIMEOUT:10000}
+    response: ${ENRICHER_API_RESPONSE_TIMEOUT:30000}
+
+# Resilience4j Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      customerService:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 100
+        slow-call-duration-threshold: 5s
+      productService:
+        register-health-indicator: true
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        permitted-number-of-calls-in-half-open-state: 3
+        wait-duration-in-open-state: 30s
+        failure-rate-threshold: 50
+        slow-call-rate-threshold: 100
+        slow-call-duration-threshold: 5s
+
+  retry:
+    instances:
+      customerService:
+        max-attempts: 3
+        wait-duration: 1s
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - com.resilient.orderworker.common.exception.ExternalApiException
+      productService:
+        max-attempts: 3
+        wait-duration: 1s
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - com.resilient.orderworker.common.exception.ExternalApiException
+
+# Logging Configuration
+logging:
+  level:
+    com.resilient.orderworker: ${LOG_LEVEL:INFO}
+    org.springframework.kafka: ${KAFKA_LOG_LEVEL:WARN}
+    org.mongodb.driver: ${MONGODB_LOG_LEVEL:WARN}
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

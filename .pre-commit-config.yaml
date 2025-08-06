@@ -1,0 +1,116 @@
+# Pre-commit hooks configuration for Resilient Order Enricher
+# See https://pre-commit.com for more information
+
+repos:
+  # Generic hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '.*\.(md|yml|yaml)$'
+      - id: end-of-file-fixer
+        exclude: '.*\.(md|yml|yaml)$'
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+      - id: check-merge-conflict
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+
+  # Java specific hooks
+  - repo: local
+    hooks:
+      - id: java-spotless
+        name: Java Spotless Check
+        entry: bash -c 'cd . && ./gradlew spotlessCheck'
+        language: system
+        files: '\.java$'
+        pass_filenames: false
+
+      - id: java-checkstyle
+        name: Java Checkstyle
+        entry: bash -c 'cd . && ./gradlew checkstyleMain checkstyleTest'
+        language: system
+        files: '\.java$'
+        pass_filenames: false
+
+      - id: java-test
+        name: Java Tests
+        entry: bash -c 'cd . && ./gradlew test'
+        language: system
+        files: '\.java$'
+        pass_filenames: false
+
+  # Go specific hooks
+  - repo: local
+    hooks:
+      - id: go-fmt-fumpt
+        name: Go Format (gofumpt)
+        entry: bash -c 'cd services/enricher-api-go && make check-fumpt'
+        language: system
+        files: '\.go$'
+        pass_filenames: false
+
+      - id: go-imports
+        name: Go Imports
+        entry: bash -c 'cd services/enricher-api-go && make check-imports'
+        language: system
+        files: '\.go$'
+        pass_filenames: false
+
+      - id: go-vet
+        name: Go Vet
+        entry: bash -c 'cd services/enricher-api-go && make vet'
+        language: system
+        files: '\.go$'
+        pass_filenames: false
+
+      - id: go-lint
+        name: Go Lint (golangci-lint)
+        entry: bash -c 'cd services/enricher-api-go && make lint'
+        language: system
+        files: '\.go$'
+        pass_filenames: false
+
+      - id: go-test
+        name: Go Tests
+        entry: bash -c 'cd services/enricher-api-go && make test'
+        language: system
+        files: '\.go$'
+        pass_filenames: false
+
+  # Docker specific hooks
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.12.0
+    hooks:
+      - id: hadolint-docker
+        name: Lint Dockerfiles
+
+  # YAML formatting
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        files: '\.(yml|yaml|json|md)$'
+        args: ["--prose-wrap=always", "--print-width=80"]
+
+  # Security scanning
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline"]
+        exclude: package.lock.json
+
+  # Spell checking
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.2.6
+    hooks:
+      - id: codespell
+        args:
+          [
+            "--skip=*.sum,*.mod,*.lock,*.log,*.jar,*.class",
+            "--ignore-words-list=crate,ue,ect,te",
+          ]
+        exclude: '(go\.sum|go\.mod|.*\.log|.*\.jar|.*\.class)$'

@@ -1,0 +1,47 @@
+# Gradle
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Application
+application-local.yml
+*.log
+logs/
+
+# Docker & Environment
+.env
+.env.local
+!env.sample
+
+# Test
+.testcontainers.properties
+
+# JaCoCo
+*.exec

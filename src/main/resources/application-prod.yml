@@ -1,0 +1,62 @@
+# Production profile configuration
+spring:
+  data:
+    mongodb:
+      uri: ${MONGODB_URI}
+      database: ${MONGODB_DATABASE}
+  
+  redis:
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT}
+    password: ${REDIS_PASSWORD}
+
+kafka:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+  consumer:
+    auto-offset-reset: latest
+    group-id: ${KAFKA_CONSUMER_GROUP}
+    max-poll-records: 50
+
+enricher-api:
+  base-url: ${ENRICHER_API_BASE_URL}
+  timeout:
+    connect: 3000
+    read: 15000
+    write: 15000
+    response: 30000
+
+# Production logging
+logging:
+  level:
+    com.resilient.orderworker: INFO
+    org.springframework.kafka: WARN
+    org.springframework.data.mongodb: WARN
+    org.mongodb.driver: WARN
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Strict resilience settings for production
+resilience4j:
+  circuitbreaker:
+    instances:
+      customerService:
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 30
+        wait-duration-in-open-state: 60s
+      productService:
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 30
+        wait-duration-in-open-state: 60s
+  
+  retry:
+    instances:
+      customerService:
+        max-attempts: 5
+        wait-duration: 2s
+        exponential-backoff-multiplier: 2
+      productService:
+        max-attempts: 5
+        wait-duration: 2s
+        exponential-backoff-multiplier: 2

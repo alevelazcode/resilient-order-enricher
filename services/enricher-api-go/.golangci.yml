@@ -1,0 +1,167 @@
+# golangci-lint configuration for Enricher API
+# https://golangci-lint.run/usage/configuration/
+# Note: IDE schema validator may show warnings, but this config works with golangci-lint
+
+version: "2"
+
+run:
+  timeout: 5m
+  issues-exit-code: 1
+  tests: true
+
+linters-settings:
+  gofumpt:
+    lang-version: "1.23"
+    extra-rules: true
+
+  goimports:
+    local-prefixes: enricher-api-go
+
+  revive:
+    severity: warning
+    rules:
+      - name: exported
+      - name: package-comments
+      - name: var-naming
+      - name: context-as-argument
+      - name: error-return
+      - name: error-naming
+      - name: if-return
+      - name: var-declaration
+      - name: receiver-naming
+      - name: time-naming
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unreachable-code
+
+  staticcheck:
+    checks: ["all"]
+
+  govet:
+    check-shadowing: true
+    enable-all: true
+    disable:
+      - fieldalignment
+
+  gosec:
+    severity: medium
+    confidence: medium
+    excludes:
+      - G401
+      - G501
+
+  gocyclo:
+    min-complexity: 10
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+    ignore-tests: true
+
+  mnd:
+    checks:
+      - argument
+      - case
+      - condition
+      - operation
+      - return
+      - assign
+    ignored-numbers:
+      - "0"
+      - "1"
+      - "2"
+      - "3"
+      - "8"
+      - "10"
+      - "16"
+      - "32"
+      - "64"
+      - "100"
+      - "200"
+      - "404"
+      - "500"
+      - "1000"
+      - "1024"
+
+  dupl:
+    threshold: 100
+
+  misspell:
+    locale: US
+
+  unparam:
+    check-exported: false
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance
+      - style
+    disabled-checks:
+      - whyNoLint
+      - wrapperFunc
+      - dupImport
+      - ifElseChain
+      - octalLiteral
+      - hugeParam
+
+  funlen:
+    lines: 100
+    statements: 50
+
+  gocognit:
+    min-complexity: 20
+
+  nestif:
+    min-complexity: 4
+
+  lll:
+    line-length: 120
+
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - gofmt
+    - goimports
+    - gofumpt
+    - revive
+    - gosec
+    - gocyclo
+    - goconst
+    - mnd
+    - dupl
+    - misspell
+    - unparam
+    - gocritic
+    - funlen
+    - gocognit
+    - nestif
+    - lll
+    - unconvert
+    - prealloc
+    - exportloopref
+    - nolintlint
+    - whitespace
+    - wsl
+
+  disable:
+    - godot
+    - godox
+    - gomoddirectives
+    - varnamelen
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
