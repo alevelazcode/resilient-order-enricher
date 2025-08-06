@@ -79,7 +79,7 @@ This will:
 
 ```bash
 # 1. Setup environment
-cp env.sample .env     # Copy environment configuration
+cp .env.sample .env     # Copy environment configuration
 make install-tools     # Install code quality tools (one-time)
 make dev               # Start development environment
 
