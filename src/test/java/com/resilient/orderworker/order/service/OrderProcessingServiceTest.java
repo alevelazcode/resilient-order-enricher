@@ -5,8 +5,11 @@
  */
 package com.resilient.orderworker.order.service;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -60,9 +63,10 @@ class OrderProcessingServiceTest {
                 new ProductResponse("product-1", "Laptop", "Gaming laptop", 999.0);
         Order savedOrder = createExpectedOrder();
 
-        when(lockService.executeWithLock(eq("order-1"), any(Supplier.class)))
+        when(lockService.<Mono<Order>>executeWithLock(eq("order-1"), any()))
                 .thenAnswer(
                         invocation -> {
+                            @SuppressWarnings("unchecked")
                             Supplier<Mono<Order>> supplier = invocation.getArgument(1);
                             return supplier.get();
                         });
@@ -86,9 +90,10 @@ class OrderProcessingServiceTest {
         OrderMessage orderMessage = createOrderMessage();
         Order existingOrder = createExpectedOrder();
 
-        when(lockService.executeWithLock(eq("order-1"), any(Supplier.class)))
+        when(lockService.<Mono<Order>>executeWithLock(eq("order-1"), any()))
                 .thenAnswer(
                         invocation -> {
+                            @SuppressWarnings("unchecked")
                             Supplier<Mono<Order>> supplier = invocation.getArgument(1);
                             return supplier.get();
                         });
@@ -113,9 +118,10 @@ class OrderProcessingServiceTest {
         ProductResponse product =
                 new ProductResponse("product-1", "Laptop", "Gaming laptop", 999.0);
 
-        when(lockService.executeWithLock(eq("order-1"), any(Supplier.class)))
+        when(lockService.<Mono<Order>>executeWithLock(eq("order-1"), any()))
                 .thenAnswer(
                         invocation -> {
+                            @SuppressWarnings("unchecked")
                             Supplier<Mono<Order>> supplier = invocation.getArgument(1);
                             return supplier.get();
                         });
@@ -143,9 +149,10 @@ class OrderProcessingServiceTest {
         ProductResponse invalidProduct =
                 new ProductResponse("product-1", "", "Gaming laptop", 999.0);
 
-        when(lockService.executeWithLock(eq("order-1"), any(Supplier.class)))
+        when(lockService.<Mono<Order>>executeWithLock(eq("order-1"), any()))
                 .thenAnswer(
                         invocation -> {
+                            @SuppressWarnings("unchecked")
                             Supplier<Mono<Order>> supplier = invocation.getArgument(1);
                             return supplier.get();
                         });
