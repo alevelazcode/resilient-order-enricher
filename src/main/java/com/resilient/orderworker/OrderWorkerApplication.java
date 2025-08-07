@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2025 Resilient Order Enricher
+ *
+ * Licensed under the MIT License.
+ */
 package com.resilient.orderworker;
 
 import org.springframework.boot.SpringApplication;
@@ -7,9 +12,9 @@ import org.springframework.kafka.annotation.EnableKafka;
 
 /**
  * Main application class for the Resilient Order Worker.
- * 
- * This application processes orders from Kafka, enriches them with external APIs,
- * and stores the processed data in MongoDB with resilience patterns.
+ *
+ * <p>This application processes orders from Kafka, enriches them with external APIs, and stores the
+ * processed data in MongoDB with resilience patterns.
  */
 @SpringBootApplication
 @EnableKafka

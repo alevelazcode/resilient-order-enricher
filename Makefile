@@ -387,6 +387,23 @@ docs: ## Generate documentation
 	cd $(JAVA_PROJECT) && ./gradlew javadoc
 	@echo "$(GREEN)Documentation generated!$(NC)"
 
+.PHONY: swagger
+swagger: ## Open Swagger UI in browser
+	@echo "$(BLUE)Opening Swagger UI...$(NC)"
+	@echo "$(YELLOW)Swagger UI: http://localhost:8081/swagger-ui.html$(NC)"
+	@if command -v open >/dev/null 2>&1; then \
+		open http://localhost:8081/swagger-ui.html; \
+	elif command -v xdg-open >/dev/null 2>&1; then \
+		xdg-open http://localhost:8081/swagger-ui.html; \
+	else \
+		echo "$(BLUE)Please open: http://localhost:8081/swagger-ui.html$(NC)"; \
+	fi
+
+.PHONY: api-docs
+api-docs: ## Show OpenAPI JSON
+	@echo "$(BLUE)OpenAPI JSON:$(NC)"
+	@curl -s http://localhost:8081/v3/api-docs | jq . || echo "$(RED)API not available. Start services with 'make start'$(NC)"
+
 .PHONY: readme
 readme: ## Show README
 	@echo "$(BLUE)Project README:$(NC)"

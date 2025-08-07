@@ -42,6 +42,10 @@ make health         # Check service health
 make check-mongo    # Check MongoDB data
 make check-redis    # Check Redis data
 
+# API Documentation
+make swagger        # Open Swagger UI (http://localhost:8081/swagger-ui.html)
+make api-docs       # View OpenAPI JSON (http://localhost:8081/v3/api-docs)
+
 # Utilities
 make kafka-setup    # Setup Kafka topics
 make send-test-message  # Send test message to Kafka
@@ -637,18 +641,176 @@ make logs-all
 
 ## 📚 API Documentation
 
-### Go API Endpoints
+### Interactive Swagger UI
 
-- `GET /health` - Health check
-- `GET /v1/customers` - List customers
-- `GET /v1/customers/:id` - Get customer details
-- `GET /v1/products` - List products
-- `GET /v1/products/:id` - Get product details
+The project includes comprehensive OpenAPI 3.0 documentation with interactive Swagger UI for easy API exploration and testing.
 
-### Java Worker Endpoints
+**🎯 Access Swagger UI:**
 
-- `GET /actuator/health` - Health check
-- `GET /actuator/metrics` - Application metrics
+```bash
+# Start the application
+make start
+
+# Access Swagger UI
+http://localhost:8081/swagger-ui.html
+
+# Access OpenAPI JSON
+http://localhost:8081/v3/api-docs
+```
+
+### Java Spring Boot API Endpoints
+
+**Order Management API:**
+
+| Method | Endpoint                               | Description             | Response              |
+| ------ | -------------------------------------- | ----------------------- | --------------------- |
+| `GET`  | `/api/v1/orders/{orderId}`             | Get order by ID         | Single enriched order |
+| `GET`  | `/api/v1/orders`                       | List orders (paginated) | Paginated order list  |
+| `GET`  | `/api/v1/orders/customer/{customerId}` | Get orders by customer  | Customer's order list |
+
+**Management & Monitoring:**
+
+| Method | Endpoint            | Description              | Response      |
+| ------ | ------------------- | ------------------------ | ------------- |
+| `GET`  | `/actuator/health`  | Application health check | Health status |
+| `GET`  | `/actuator/metrics` | Application metrics      | Metrics data  |
+| `GET`  | `/actuator/info`    | Application information  | App info      |
+
+### Go Enrichment API Endpoints
+
+**Customer Enrichment:**
+
+| Method   | Endpoint                    | Description           | Response         |
+| -------- | --------------------------- | --------------------- | ---------------- |
+| `GET`    | `/v1/customers`             | List all customers    | Customer array   |
+| `GET`    | `/v1/customers/{id}`        | Get customer details  | Customer object  |
+| `GET`    | `/v1/customers/{id}/status` | Check customer status | Status info      |
+| `POST`   | `/v1/customers`             | Create new customer   | Created customer |
+| `PUT`    | `/v1/customers/{id}`        | Update customer       | Updated customer |
+| `DELETE` | `/v1/customers/{id}`        | Delete customer       | Success status   |
+
+**Product Enrichment:**
+
+| Method   | Endpoint                         | Description         | Response        |
+| -------- | -------------------------------- | ------------------- | --------------- |
+| `GET`    | `/v1/products`                   | List all products   | Product array   |
+| `GET`    | `/v1/products/{id}`              | Get product details | Product object  |
+| `GET`    | `/v1/products/{id}/availability` | Check availability  | Stock status    |
+| `POST`   | `/v1/products`                   | Create new product  | Created product |
+| `PUT`    | `/v1/products/{id}`              | Update product      | Updated product |
+| `DELETE` | `/v1/products/{id}`              | Delete product      | Success status  |
+
+**Health Check:**
+
+| Method | Endpoint  | Description          | Response      |
+| ------ | --------- | -------------------- | ------------- |
+| `GET`  | `/health` | Service health check | Health status |
+
+### API Response Examples
+
+**Order Response:**
+
+```json
+{
+  "orderId": "order-12345",
+  "customerId": "customer-67890",
+  "customerName": "John Doe",
+  "customerStatus": "ACTIVE",
+  "products": [
+    {
+      "productId": "product-001",
+      "name": "Gaming Laptop",
+      "description": "High-performance gaming laptop with RTX graphics",
+      "price": 1299.99,
+      "category": "Electronics",
+      "inStock": true
+    }
+  ],
+  "totalAmount": 1299.99,
+  "processedAt": "2025-01-08T10:30:00",
+  "status": "COMPLETED"
+}
+```
+
+**Paginated Response:**
+
+```json
+{
+  "content": [...],
+  "page": 0,
+  "size": 20,
+  "totalElements": 150,
+  "totalPages": 8,
+  "first": true,
+  "last": false,
+  "hasNext": true,
+  "hasPrevious": false
+}
+```
+
+### Swagger Features
+
+**📋 Comprehensive Documentation:**
+
+- Complete API specification with OpenAPI 3.0
+- Interactive endpoint testing
+- Request/response examples
+- Parameter validation details
+- Error response documentation
+
+**🔧 Development Features:**
+
+- Try-it-out functionality for all endpoints
+- Real-time request/response testing
+- Copy as cURL commands
+- Response time measurement
+- Schema validation
+
+**📊 Advanced Features:**
+
+- Pagination support documentation
+- Filter parameter examples
+- Sort options specification
+- Security scheme definitions (for future authentication)
+- Actuator endpoints integration
+
+### Testing with Swagger UI
+
+1. **Start the application:**
+
+   ```bash
+   make start
+   ```
+
+2. **Open Swagger UI:**
+
+   ```
+   http://localhost:8081/swagger-ui.html
+   ```
+
+3. **Test endpoints:**
+
+   - Click on any endpoint
+   - Click "Try it out"
+   - Fill in parameters
+   - Click "Execute"
+   - View response
+
+4. **Example workflow:**
+
+   ```bash
+   # Get all orders
+   GET /api/v1/orders
+
+   # Get specific order
+   GET /api/v1/orders/order-12345
+
+   # Filter by status
+   GET /api/v1/orders?status=COMPLETED
+
+   # Paginate results
+   GET /api/v1/orders?page=0&size=10&sort=processedAt,desc
+   ```
 
 ## 🎯 Performance & Scalability
 

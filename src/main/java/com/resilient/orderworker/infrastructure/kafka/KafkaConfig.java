@@ -1,6 +1,13 @@
+/*
+ * Copyright (c) 2025 Resilient Order Enricher
+ *
+ * Licensed under the MIT License.
+ */
 package com.resilient.orderworker.infrastructure.kafka;
 
-import com.resilient.orderworker.order.dto.OrderMessage;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,28 +20,25 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.resilient.orderworker.order.dto.OrderMessage;
 
-/**
- * Kafka configuration for consuming order messages.
- */
+/** Kafka configuration for consuming order messages. */
 @Configuration
 @EnableKafka
 public class KafkaConfig {
-    
+
     @Value("${kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
-    
+
     @Value("${kafka.consumer.group-id:order-worker-group}")
     private String groupId;
-    
+
     @Value("${kafka.consumer.auto-offset-reset:earliest}")
     private String autoOffsetReset;
-    
+
     @Value("${kafka.consumer.max-poll-records:10}")
     private String maxPollRecords;
-    
+
     @Bean
     public ConsumerFactory<String, OrderMessage> consumerFactory() {
         Map<String, Object> props = new HashMap<>();
@@ -48,25 +52,26 @@ public class KafkaConfig {
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, OrderMessage.class.getName());
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
-        
+
         return new DefaultKafkaConsumerFactory<>(props);
     }
-    
+
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, OrderMessage> kafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, OrderMessage> factory = 
-            new ConcurrentKafkaListenerContainerFactory<>();
+    public ConcurrentKafkaListenerContainerFactory<String, OrderMessage>
+            kafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, OrderMessage> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
-        
+
         // Manual acknowledgement mode for better control
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
-        
+
         // Enable batch listener for better performance
         factory.setBatchListener(false);
-        
+
         // Set concurrency level
         factory.setConcurrency(3);
-        
+
         return factory;
     }
 }
