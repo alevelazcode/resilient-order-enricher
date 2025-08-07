@@ -218,6 +218,34 @@ clean-docker: ## Clean Docker containers and images
 	docker system prune -f
 	@echo "$(GREEN)Docker cleaned!$(NC)"
 
+.PHONY: local-run-docker
+local-run-docker: ## Start Docker if not running and launch local containers
+	@echo "$(BLUE)Starting Docker if needed and launching local containers...$(NC)"
+	@if ! docker info > /dev/null 2>&1; then \
+		echo "$(YELLOW)Docker is not running. Starting Docker...$(NC)"; \
+		if [[ "$$OSTYPE" == "linux-gnu"* ]]; then \
+			sudo systemctl start docker; \
+		elif [[ "$$OSTYPE" == "darwin"* ]]; then \
+			open --background -a Docker; \
+			while ! docker info > /dev/null 2>&1; do \
+				echo "$(YELLOW)Waiting for Docker to start...$(NC)"; \
+				sleep 2; \
+			done; \
+		elif [[ "$$OSTYPE" == "msys"* ]]; then \
+			start /B docker; \
+			timeout 10; \
+		fi \
+	fi; \
+	echo "$(GREEN)Docker is running. Starting containers...$(NC)"; \
+	docker compose -f docker-compose.local.yml up --build -d
+	@echo "$(GREEN)Local containers started successfully!$(NC)"
+
+.PHONY: clean-docker-local
+clean-docker-local: ## Clean local Docker containers completely
+	@echo "$(BLUE)Cleaning local Docker containers...$(NC)"
+	docker compose -f docker-compose.local.yml down --volumes --remove-orphans --rmi all
+	@echo "$(GREEN)Local Docker containers cleaned!$(NC)"
+
 # =============================================================================
 # MONITORING & DEBUGGING
 # =============================================================================
