@@ -251,6 +251,7 @@ main() {
     echo "3. Test formatting by saving a file"
     echo "4. Run 'make format' to format all files manually"
     echo "5. Run 'make ci' to run all checks"
+
     echo ""
     echo -e "${BLUE}🎯 Now your code will be automatically formatted on save!${NC}"
 }
