@@ -40,7 +40,9 @@ import com.resilient.orderworker.config.TestConfig;
  * @version 1.0.0
  * @since 1.0.0
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = TestConfig.class)
+@SpringBootTest(
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+        classes = TestConfig.class)
 @AutoConfigureWebTestClient
 @ActiveProfiles("test")
 @DisplayName("OpenAPI/Swagger Integration Tests")

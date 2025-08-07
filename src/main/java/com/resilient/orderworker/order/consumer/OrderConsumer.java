@@ -16,7 +16,6 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import com.resilient.orderworker.infrastructure.redis.FailedMessageService;
-import com.resilient.orderworker.infrastructure.redis.MockFailedMessageService;
 import com.resilient.orderworker.order.dto.OrderMessage;
 import com.resilient.orderworker.order.service.OrderProcessingService;
 

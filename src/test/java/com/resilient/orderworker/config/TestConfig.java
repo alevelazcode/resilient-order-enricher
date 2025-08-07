@@ -35,20 +35,19 @@ public class TestConfig {
     @Primary
     public FailedMessageService mockFailedMessageService() {
         final FailedMessageService mock = Mockito.mock(FailedMessageService.class);
-        
+
         // Configure mock behavior
-        Mockito.when(mock.storeFailedMessage(Mockito.any(OrderMessage.class), Mockito.any(Throwable.class)))
-            .thenReturn(Mono.empty());
-        
-        Mockito.when(mock.getMessagesReadyForRetry())
-            .thenReturn(Flux.empty());
-        
-        Mockito.when(mock.removeFailedMessage(Mockito.anyString()))
-            .thenReturn(Mono.empty());
-        
-        Mockito.when(mock.getAttemptCount(Mockito.anyString()))
-            .thenReturn(Mono.just(0));
-        
+        Mockito.when(
+                        mock.storeFailedMessage(
+                                Mockito.any(OrderMessage.class), Mockito.any(Throwable.class)))
+                .thenReturn(Mono.empty());
+
+        Mockito.when(mock.getMessagesReadyForRetry()).thenReturn(Flux.empty());
+
+        Mockito.when(mock.removeFailedMessage(Mockito.anyString())).thenReturn(Mono.empty());
+
+        Mockito.when(mock.getAttemptCount(Mockito.anyString())).thenReturn(Mono.just(0));
+
         return mock;
     }
 }

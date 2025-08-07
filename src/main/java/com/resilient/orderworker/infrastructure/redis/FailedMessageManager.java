@@ -14,6 +14,7 @@ import reactor.core.publisher.Mono;
  * Interface for managing failed order messages with retry tracking.
  *
  * <p>This interface provides methods for:
+ *
  * <ul>
  *   <li>Storing failed messages with attempt tracking
  *   <li>Retrieving messages ready for retry

@@ -18,9 +18,8 @@ import reactor.core.publisher.Mono;
 /**
  * Mock implementation of FailedMessageService for testing when Redis is disabled.
  *
- * <p>This implementation provides a no-op version of the FailedMessageService
- * that can be used during testing when Redis is not available or when Redis
- * functionality should be disabled.
+ * <p>This implementation provides a no-op version of the FailedMessageService that can be used
+ * during testing when Redis is not available or when Redis functionality should be disabled.
  *
  * @author Alejandro Velazco
  * @version 1.0.0
@@ -40,8 +39,10 @@ public class MockFailedMessageService {
      * @return Mono that completes immediately
      */
     public Mono<Void> storeFailedMessage(final OrderMessage orderMessage, final Throwable error) {
-        LOGGER.info("Mock: Would store failed message for order {} with error: {}", 
-            orderMessage.orderId(), error.getMessage());
+        LOGGER.info(
+                "Mock: Would store failed message for order {} with error: {}",
+                orderMessage.orderId(),
+                error.getMessage());
         return Mono.empty();
     }
 

@@ -10,6 +10,7 @@ import java.time.Duration;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
+import org.redisson.config.EqualJitterDelay;
 import org.redisson.config.SingleServerConfig;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -17,9 +18,22 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Redis configuration for distributed locks and caching.
+ * Redis configuration for distributed locks and caching using Redisson.
+ *
+ * <p>This configuration provides:
+ *
+ * <ul>
+ *   <li><strong>Single Server Mode</strong>: Connects to a single Redis instance
+ *   <li><strong>Retry Strategy</strong>: Uses EqualJitterDelay for connection retries
+ *   <li><strong>Timeout Configuration</strong>: Configurable response timeouts
+ *   <li><strong>Password Authentication</strong>: Optional password-based auth
+ * </ul>
  *
  * <p>Enable or disable by setting {@code redisson.enabled=false} in {@code application.yml}.
+ *
+ * @author Alejandro Velazco
+ * @version 1.0.0
+ * @since 1.0.0
  */
 @Configuration
 @ConditionalOnProperty(name = "redisson.enabled", havingValue = "true", matchIfMissing = true)
@@ -38,14 +52,24 @@ public class RedisConfig {
     @Value("${spring.redis.timeout:3s}")
     private Duration timeout;
 
-    /** Interval between retry attempts (default 1 s). */
-    @Value("${spring.redis.retry-interval:1s}")
-    private Duration retryInterval;
-
     /** Number of retry attempts before giving up (default 3). */
     @Value("${spring.redis.retry-attempts:3}")
     private int retryAttempts;
 
+    /**
+     * Creates and configures a RedissonClient for distributed operations.
+     *
+     * <p>This client is configured with:
+     *
+     * <ul>
+     *   <li>Single server mode for Redis connection
+     *   <li>Configurable timeout and retry settings
+     *   <li>EqualJitterDelay retry strategy for better resilience
+     *   <li>Optional password authentication
+     * </ul>
+     *
+     * @return configured RedissonClient instance
+     */
     @Bean
     public RedissonClient redissonClient() {
         Config config = new Config();
@@ -55,7 +79,8 @@ public class RedisConfig {
                         .setAddress(String.format("redis://%s:%d", redisHost, redisPort))
                         .setTimeout((int) timeout.toMillis()) // expects int (ms)
                         .setRetryAttempts(retryAttempts)
-                        .setRetryInterval((int) retryInterval.toMillis()); // expects int (ms)
+                        .setRetryDelay(
+                                new EqualJitterDelay(Duration.ofSeconds(1), Duration.ofSeconds(2)));
 
         if (!redisPassword.isBlank()) {
             single.setPassword(redisPassword);

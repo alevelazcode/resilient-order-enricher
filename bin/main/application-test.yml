@@ -10,6 +10,7 @@ spring:
       - org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration
       - org.springframework.boot.actuate.autoconfigure.data.redis.RedisReactiveHealthContributorAutoConfiguration
       - org.springframework.boot.actuate.autoconfigure.data.redis.RedisHealthContributorAutoConfiguration
+      - org.redisson.spring.starter.RedissonAutoConfiguration
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
 
   # Disable MongoDB
@@ -38,6 +39,10 @@ app:
   scheduler:
     failed-messages:
       enabled: false
+
+# Disable Redisson for testing
+redisson:
+  enabled: false
 
 # Disable external API calls for testing
 enricher-api:

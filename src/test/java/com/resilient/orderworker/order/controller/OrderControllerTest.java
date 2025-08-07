@@ -21,7 +21,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
-import com.resilient.orderworker.config.TestConfig;
 import com.resilient.orderworker.order.entity.Order;
 import com.resilient.orderworker.order.repository.OrderRepository;
 
