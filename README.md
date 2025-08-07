@@ -896,5 +896,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Redis** - Fast in-memory data store
 
 ---
-
-**Happy Coding! 🚀**
