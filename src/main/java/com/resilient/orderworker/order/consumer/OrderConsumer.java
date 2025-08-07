@@ -15,6 +15,8 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
+import com.resilient.orderworker.infrastructure.redis.FailedMessageService;
+import com.resilient.orderworker.infrastructure.redis.MockFailedMessageService;
 import com.resilient.orderworker.order.dto.OrderMessage;
 import com.resilient.orderworker.order.service.OrderProcessingService;
 
@@ -31,9 +33,13 @@ public class OrderConsumer {
     private static final Logger logger = LoggerFactory.getLogger(OrderConsumer.class);
 
     private final OrderProcessingService orderProcessingService;
+    private final FailedMessageService failedMessageService;
 
-    public OrderConsumer(OrderProcessingService orderProcessingService) {
+    public OrderConsumer(
+            OrderProcessingService orderProcessingService,
+            FailedMessageService failedMessageService) {
         this.orderProcessingService = orderProcessingService;
+        this.failedMessageService = failedMessageService;
     }
 
     /**
@@ -73,8 +79,25 @@ public class OrderConsumer {
                                     orderMessage.orderId(),
                                     error.getMessage(),
                                     error);
-                            // In production, you might want to send to DLQ instead of just
-                            // acknowledging
+
+                            // Store failed message in Redis for retry processing
+                            failedMessageService
+                                    .storeFailedMessage(orderMessage, error)
+                                    .doOnSuccess(
+                                            v ->
+                                                    logger.info(
+                                                            "Stored failed message for order {} in"
+                                                                    + " Redis for retry",
+                                                            orderMessage.orderId()))
+                                    .doOnError(
+                                            storeError ->
+                                                    logger.error(
+                                                            "Failed to store message in Redis: {}",
+                                                            storeError.getMessage()))
+                                    .subscribe();
+
+                            // Acknowledge the message to prevent Kafka redelivery (we handle
+                            // retries via Redis)
                             acknowledgment.acknowledge();
                         })
                 .onErrorResume(
@@ -85,6 +108,13 @@ public class OrderConsumer {
                                     orderMessage.orderId(),
                                     error.getMessage(),
                                     error);
+
+                            // Store in Redis as failed message
+                            failedMessageService
+                                    .storeFailedMessage(orderMessage, error)
+                                    .subscribe();
+
+                            acknowledgment.acknowledge();
                             return Mono.empty();
                         })
                 .subscribe();

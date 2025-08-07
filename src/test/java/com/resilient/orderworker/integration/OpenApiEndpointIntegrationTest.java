@@ -23,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
+import com.resilient.orderworker.config.TestConfig;
 import com.resilient.orderworker.order.entity.Order;
 import com.resilient.orderworker.order.repository.OrderRepository;
 
@@ -39,7 +40,7 @@ import reactor.core.publisher.Mono;
  * @version 1.0.0
  * @since 1.0.0
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = TestConfig.class)
 @AutoConfigureWebTestClient
 @ActiveProfiles("test")
 @DisplayName("OpenAPI Endpoint Integration Tests")

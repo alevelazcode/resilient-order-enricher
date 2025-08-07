@@ -21,6 +21,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
+import com.resilient.orderworker.config.TestConfig;
 import com.resilient.orderworker.order.entity.Order;
 import com.resilient.orderworker.order.repository.OrderRepository;
 
@@ -37,7 +38,7 @@ import reactor.core.publisher.Mono;
  * @version 1.0.0
  * @since 1.0.0
  */
-@WebFluxTest(OrderController.class)
+@WebFluxTest(controllers = OrderController.class, properties = "spring.profiles.active=test")
 @DisplayName("Order Controller API Tests")
 class OrderControllerTest {
 

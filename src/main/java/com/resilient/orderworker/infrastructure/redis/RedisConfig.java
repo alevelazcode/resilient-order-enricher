@@ -5,17 +5,24 @@
  */
 package com.resilient.orderworker.infrastructure.redis;
 
+import java.time.Duration;
+
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
+import org.redisson.config.SingleServerConfig;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Redis configuration using Redisson for distributed locks and caching. */
+/**
+ * Redis configuration for distributed locks and caching.
+ *
+ * <p>Enable or disable by setting {@code redisson.enabled=false} in {@code application.yml}.
+ */
 @Configuration
-@ConditionalOnProperty(name = "spring.redis.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "redisson.enabled", havingValue = "true", matchIfMissing = true)
 public class RedisConfig {
 
     @Value("${spring.redis.host:localhost}")
@@ -27,30 +34,31 @@ public class RedisConfig {
     @Value("${spring.redis.password:}")
     private String redisPassword;
 
-    @Value("${spring.redis.timeout:3000}")
-    private String timeoutStr;
+    /** Max time to wait for a Redis response (e.g. 3s, 1500ms). */
+    @Value("${spring.redis.timeout:3s}")
+    private Duration timeout;
 
-    private int getTimeout() {
-        if (timeoutStr.endsWith("ms")) {
-            return Integer.parseInt(timeoutStr.substring(0, timeoutStr.length() - 2));
-        }
-        return Integer.parseInt(timeoutStr);
-    }
+    /** Interval between retry attempts (default 1 s). */
+    @Value("${spring.redis.retry-interval:1s}")
+    private Duration retryInterval;
+
+    /** Number of retry attempts before giving up (default 3). */
+    @Value("${spring.redis.retry-attempts:3}")
+    private int retryAttempts;
 
     @Bean
     public RedissonClient redissonClient() {
         Config config = new Config();
 
-        String address = String.format("redis://%s:%d", redisHost, redisPort);
+        SingleServerConfig single =
+                config.useSingleServer()
+                        .setAddress(String.format("redis://%s:%d", redisHost, redisPort))
+                        .setTimeout((int) timeout.toMillis()) // expects int (ms)
+                        .setRetryAttempts(retryAttempts)
+                        .setRetryInterval((int) retryInterval.toMillis()); // expects int (ms)
 
-        config.useSingleServer()
-                .setAddress(address)
-                .setTimeout(getTimeout())
-                .setRetryAttempts(3)
-                .setRetryInterval(1000);
-
-        if (redisPassword != null && !redisPassword.trim().isEmpty()) {
-            config.useSingleServer().setPassword(redisPassword);
+        if (!redisPassword.isBlank()) {
+            single.setPassword(redisPassword);
         }
 
         return Redisson.create(config);

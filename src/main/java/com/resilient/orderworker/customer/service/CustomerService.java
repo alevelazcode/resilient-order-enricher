@@ -8,6 +8,7 @@ package com.resilient.orderworker.customer.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -46,6 +47,7 @@ public class CustomerService {
      */
     @CircuitBreaker(name = CIRCUIT_BREAKER_NAME, fallbackMethod = "fallbackGetCustomer")
     @Retry(name = RETRY_NAME)
+    @Cacheable(value = "customers", key = "#customerId")
     public Mono<CustomerResponse> getCustomer(String customerId) {
         logger.debug("Fetching customer details for ID: {}", customerId);
 

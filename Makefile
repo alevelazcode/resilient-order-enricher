@@ -125,6 +125,36 @@ test-coverage: ## Run tests with coverage
 	cd $(GO_PROJECT) && go test -v -coverprofile=coverage.out ./... && go tool cover -html=coverage.out -o coverage.html
 	@echo "$(GREEN)Coverage reports generated!$(NC)"
 
+.PHONY: test-load
+test-load: ## Run load tests (requires services to be running)
+	@echo "$(BLUE)Running load tests...$(NC)"
+	./scripts/load-test.sh
+	@echo "$(GREEN)Load tests completed!$(NC)"
+
+.PHONY: test-load-light
+test-load-light: ## Run light load test (100 messages)
+	@echo "$(BLUE)Running light load test...$(NC)"
+	./scripts/load-test.sh 100 5 20 50
+	@echo "$(GREEN)Light load test completed!$(NC)"
+
+.PHONY: test-load-medium
+test-load-medium: ## Run medium load test (1000 messages)
+	@echo "$(BLUE)Running medium load test...$(NC)"
+	./scripts/load-test.sh 1000 10 50 100
+	@echo "$(GREEN)Medium load test completed!$(NC)"
+
+.PHONY: test-load-heavy
+test-load-heavy: ## Run heavy load test (10000 messages)
+	@echo "$(BLUE)Running heavy load test...$(NC)"
+	./scripts/load-test.sh 10000 20 100 100
+	@echo "$(GREEN)Heavy load test completed!$(NC)"
+
+.PHONY: test-performance
+test-performance: ## Run Java performance tests (unit tests)
+	@echo "$(BLUE)Running performance tests...$(NC)"
+	cd $(JAVA_PROJECT) && ./gradlew test --tests="*LoadTest*" -Dtest.profile=performance
+	@echo "$(GREEN)Performance tests completed!$(NC)"
+
 # =============================================================================
 # DEVELOPMENT
 # =============================================================================

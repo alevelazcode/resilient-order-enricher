@@ -21,6 +21,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.reactive.server.WebTestClient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.resilient.orderworker.config.TestConfig;
 
 /**
  * Integration tests for OpenAPI/Swagger functionality.
@@ -39,7 +40,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * @version 1.0.0
  * @since 1.0.0
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = TestConfig.class)
 @AutoConfigureWebTestClient
 @ActiveProfiles("test")
 @DisplayName("OpenAPI/Swagger Integration Tests")

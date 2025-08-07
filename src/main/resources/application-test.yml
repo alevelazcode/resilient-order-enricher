@@ -25,9 +25,19 @@ spring:
     host: localhost
     port: 6379
 
+  # Disable Cache
+  cache:
+    enabled: false
+
 # Disable Kafka for testing
 kafka:
   enabled: false
+
+# Disable Application schedulers for testing
+app:
+  scheduler:
+    failed-messages:
+      enabled: false
 
 # Disable external API calls for testing
 enricher-api:

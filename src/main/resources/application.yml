@@ -18,6 +18,13 @@ spring:
   webflux:
     base-path: /
 
+  # Spring Cache Configuration
+  cache:
+    enabled: ${CACHE_ENABLED:true}
+    redis:
+      time-to-live: ${CACHE_TTL:600000} # 10 minutes default
+    cache-names: customers,products,orders
+
 # OpenAPI/Swagger Configuration
 springdoc:
   api-docs:
@@ -111,12 +118,21 @@ resilience4j:
         retry-exceptions:
           - com.resilient.orderworker.common.exception.ExternalApiException
 
+# Application Configuration
+app:
+  scheduler:
+    failed-messages:
+      enabled: ${FAILED_MESSAGE_SCHEDULER_ENABLED:true}
+      fixed-delay: ${FAILED_MESSAGE_RETRY_INTERVAL:30000} # 30 seconds
+      cleanup-delay: ${FAILED_MESSAGE_CLEANUP_INTERVAL:300000} # 5 minutes
+
 # Logging Configuration
 logging:
   level:
     com.resilient.orderworker: ${LOG_LEVEL:INFO}
     org.springframework.kafka: ${KAFKA_LOG_LEVEL:WARN}
     org.mongodb.driver: ${MONGODB_LOG_LEVEL:WARN}
+    org.springframework.cache: ${CACHE_LOG_LEVEL:INFO}
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
