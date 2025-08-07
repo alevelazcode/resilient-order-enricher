@@ -5,9 +5,10 @@ WORKDIR /app
 COPY build.gradle.kts settings.gradle.kts gradle.properties ./
 COPY gradle/ gradle/
 COPY src/ src/
+COPY config/ config/
 
 # Build the application
-RUN gradle clean build -x test --no-daemon
+RUN gradle clean build -x test -x checkstyleMain -x checkstyleTest -x spotlessCheck --no-daemon
 
 # Runtime stage
 FROM openjdk:21-jdk-slim

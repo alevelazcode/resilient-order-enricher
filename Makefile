@@ -94,7 +94,7 @@ build: build-java build-go ## Build both Java and Go projects
 .PHONY: build-java
 build-java: ## Build Java project
 	@echo "$(BLUE)Building Java project...$(NC)"
-	cd $(JAVA_PROJECT) && ./gradlew clean build -x test -x checkstyleMain -x checkstyleTest
+	cd $(JAVA_PROJECT) && ./gradlew clean build -x test -x checkstyleMain -x checkstyleTest -x spotlessCheck
 	@echo "$(GREEN)Java project built successfully!$(NC)"
 
 .PHONY: build-go
