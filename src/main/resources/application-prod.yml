@@ -4,7 +4,7 @@ spring:
     mongodb:
       uri: ${MONGODB_URI}
       database: ${MONGODB_DATABASE}
-  
+
   redis:
     host: ${REDIS_HOST}
     port: ${REDIS_PORT}
@@ -49,7 +49,7 @@ resilience4j:
         minimum-number-of-calls: 10
         failure-rate-threshold: 30
         wait-duration-in-open-state: 60s
-  
+
   retry:
     instances:
       customerService:

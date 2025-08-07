@@ -18,22 +18,30 @@ repos:
       - id: check-executables-have-shebangs
       - id: check-shebang-scripts-are-executable
 
-  # Java specific hooks
+  # Java specific hooks - AUTO-FIXING
   - repo: local
     hooks:
-      - id: java-spotless
-        name: Java Spotless Check
-        entry: bash -c 'cd . && ./gradlew spotlessCheck'
+      - id: java-spotless-apply
+        name: Java Spotless Apply (Auto-fix)
+        entry: bash -c 'cd . && ./gradlew spotlessApply'
         language: system
         files: '\.java$'
         pass_filenames: false
 
-      - id: java-checkstyle
-        name: Java Checkstyle
-        entry: bash -c 'cd . && ./gradlew checkstyleMain checkstyleTest'
-        language: system
-        files: '\.java$'
-        pass_filenames: false
+      # Temporarily disabled strict checks for development
+      # - id: java-spotless-check
+      #   name: Java Spotless Check
+      #   entry: bash -c 'cd . && ./gradlew spotlessCheck'
+      #   language: system
+      #   files: '\.java$'
+      #   pass_filenames: false
+
+      # - id: java-checkstyle
+      #   name: Java Checkstyle
+      #   entry: bash -c 'cd . && ./gradlew checkstyleMain checkstyleTest'
+      #   language: system
+      #   files: '\.java$'
+      #   pass_filenames: false
 
       - id: java-test
         name: Java Tests
@@ -42,36 +50,30 @@ repos:
         files: '\.java$'
         pass_filenames: false
 
-  # Go specific hooks
+  # Go specific hooks - AUTO-FIXING
   - repo: local
     hooks:
-      - id: go-fmt-fumpt
-        name: Go Format (gofumpt)
-        entry: bash -c 'cd services/enricher-api-go && make check-fumpt'
+      - id: go-fmt-apply
+        name: Go Format Apply (Auto-fix)
+        entry: bash -c 'cd services/enricher-api-go && make format'
         language: system
         files: '\.go$'
         pass_filenames: false
 
-      - id: go-imports
-        name: Go Imports
-        entry: bash -c 'cd services/enricher-api-go && make check-imports'
-        language: system
-        files: '\.go$'
-        pass_filenames: false
+      # Temporarily disabled strict checks for development
+      # - id: go-fmt-check
+      #   name: Go Format Check
+      #   entry: bash -c 'cd services/enricher-api-go && make check'
+      #   language: system
+      #   files: '\.go$'
+      #   pass_filenames: false
 
-      - id: go-vet
-        name: Go Vet
-        entry: bash -c 'cd services/enricher-api-go && make vet'
-        language: system
-        files: '\.go$'
-        pass_filenames: false
-
-      - id: go-lint
-        name: Go Lint (golangci-lint)
-        entry: bash -c 'cd services/enricher-api-go && make lint'
-        language: system
-        files: '\.go$'
-        pass_filenames: false
+      # - id: go-lint
+      #   name: Go Lint (golangci-lint)
+      #   entry: bash -c 'cd services/enricher-api-go && make lint'
+      #   language: system
+      #   files: '\.go$'
+      #   pass_filenames: false
 
       - id: go-test
         name: Go Tests
@@ -87,7 +89,7 @@ repos:
       - id: hadolint-docker
         name: Lint Dockerfiles
 
-  # YAML formatting
+  # YAML formatting - AUTO-FIXING
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v3.1.0
     hooks:

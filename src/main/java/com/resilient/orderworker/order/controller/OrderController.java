@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.resilient.orderworker.common.dto.PageResponse;
+import com.resilient.orderworker.common.exception.OrderNotFoundException;
 import com.resilient.orderworker.order.dto.OrderResponse;
 import com.resilient.orderworker.order.entity.Order;
 import com.resilient.orderworker.order.repository.OrderRepository;
@@ -35,7 +36,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import reactor.core.publisher.Mono;
-import com.resilient.orderworker.common.exception.OrderNotFoundException;
 
 /**
  * REST Controller for order management operations.
@@ -69,7 +69,7 @@ import com.resilient.orderworker.common.exception.OrderNotFoundException;
                 """)
 public class OrderController {
 
-    private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(OrderController.class);
 
     private final OrderRepository orderRepository;
 
@@ -162,18 +162,21 @@ The order includes enriched customer information (name, status) and product deta
                     @PathVariable
                     String orderId) {
 
-        logger.info("Retrieving order with ID: {}", orderId);
+        LOGGER.info("Retrieving order with ID: {}", orderId);
 
         return orderRepository
                 .findByOrderId(orderId)
                 .map(OrderResponse::fromEntity)
                 .map(ResponseEntity::ok)
-                .switchIfEmpty(Mono.error(new OrderNotFoundException("Order with ID '" + orderId + "' was not found")))
+                .switchIfEmpty(
+                        Mono.error(
+                                new OrderNotFoundException(
+                                        "Order with ID '" + orderId + "' was not found")))
                 .doOnSuccess(
-                        response -> logger.info("Order retrieval completed for ID: {}", orderId))
+                        response -> LOGGER.info("Order retrieval completed for ID: {}", orderId))
                 .doOnError(
                         error ->
-                                logger.error("Error retrieving order with ID: {}", orderId, error));
+                                LOGGER.error("Error retrieving order with ID: {}", orderId, error));
     }
 
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
@@ -308,7 +311,7 @@ Retrieves a paginated list of orders with optional filtering capabilities.
                     @RequestParam(required = false)
                     String customerId) {
 
-        logger.info(
+        LOGGER.info(
                 "Listing orders with page: {}, size: {}, sort: {}, status: {}, customerId: {}",
                 page,
                 size,
@@ -374,10 +377,10 @@ Retrieves a paginated list of orders with optional filtering capabilities.
                         })
                 .doOnSuccess(
                         response ->
-                                logger.info(
+                                LOGGER.info(
                                         "Orders listing completed with {} items",
                                         response.getBody().content().size()))
-                .doOnError(error -> logger.error("Error listing orders", error));
+                .doOnError(error -> LOGGER.error("Error listing orders", error));
     }
 
     @GetMapping(value = "/customer/{customerId}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -426,7 +429,7 @@ Retrieves a paginated list of orders with optional filtering capabilities.
                     @PathVariable
                     String customerId) {
 
-        logger.info("Retrieving orders for customer: {}", customerId);
+        LOGGER.info("Retrieving orders for customer: {}", customerId);
 
         return orderRepository
                 .findByCustomerId(customerId)
@@ -439,11 +442,11 @@ Retrieves a paginated list of orders with optional filtering capabilities.
                                         : ResponseEntity.ok(orders))
                 .doOnSuccess(
                         response ->
-                                logger.info(
+                                LOGGER.info(
                                         "Customer orders retrieval completed for: {}", customerId))
                 .doOnError(
                         error ->
-                                logger.error(
+                                LOGGER.error(
                                         "Error retrieving orders for customer: {}",
                                         customerId,
                                         error));

@@ -8,10 +8,7 @@ package com.resilient.orderworker.integration;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 
-import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.DisplayName;
@@ -25,18 +22,17 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import reactor.core.publisher.Mono;
-
 /**
  * Integration tests for OpenAPI/Swagger functionality.
  *
  * <p>These tests validate the complete OpenAPI/Swagger implementation including:
+ *
  * <ul>
- *   <li>OpenAPI specification availability and structure</li>
- *   <li>Swagger UI accessibility and functionality</li>
- *   <li>API documentation completeness</li>
- *   <li>Endpoint documentation accuracy</li>
- *   <li>Schema validation</li>
+ *   <li>OpenAPI specification availability and structure
+ *   <li>Swagger UI accessibility and functionality
+ *   <li>API documentation completeness
+ *   <li>Endpoint documentation accuracy
+ *   <li>Schema validation
  * </ul>
  *
  * @author Resilient Order Enricher Team
@@ -48,11 +44,9 @@ import reactor.core.publisher.Mono;
 @DisplayName("OpenAPI/Swagger Integration Tests")
 class OpenApiIntegrationTest {
 
-    @Autowired
-    private WebTestClient webTestClient;
+    @Autowired private WebTestClient webTestClient;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private ObjectMapper objectMapper;
 
     @Test
     @DisplayName("OpenAPI specification should be available at /v3/api-docs")
@@ -283,30 +277,36 @@ class OpenApiIntegrationTest {
                 .expectStatus()
                 .isOk()
                 .expectBody()
-                .jsonPath("$.paths./api/v1/orders/{orderId}.get.responses.200.content.application/json.examples")
+                .jsonPath(
+                        "$.paths./api/v1/orders/{orderId}.get.responses.200.content.application/json.examples")
                 .exists()
-                .jsonPath("$.paths./api/v1/orders/{orderId}.get.responses.200.content.application/json.examples['Successful Order Response']")
+                .jsonPath(
+                        "$.paths./api/v1/orders/{orderId}.get.responses.200.content.application/json.examples['Successful"
+                            + " Order Response']")
                 .exists()
-                .jsonPath("$.paths./api/v1/orders/{orderId}.get.responses.200.content.application/json.examples['Successful Order Response'].summary")
+                .jsonPath(
+                        "$.paths./api/v1/orders/{orderId}.get.responses.200.content.application/json.examples['Successful"
+                            + " Order Response'].summary")
                 .isEqualTo("Complete enriched order");
     }
 
     @Test
     @DisplayName("OpenAPI specification should be valid JSON")
     void openApiSpecification_ShouldBeValidJson() {
-        String responseBody = webTestClient
-                .get()
-                .uri("/v3/api-docs")
-                .accept(MediaType.APPLICATION_JSON)
-                .exchange()
-                .expectStatus()
-                .isOk()
-                .expectBody(String.class)
-                .returnResult()
-                .getResponseBody();
+        String responseBody =
+                webTestClient
+                        .get()
+                        .uri("/v3/api-docs")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .exchange()
+                        .expectStatus()
+                        .isOk()
+                        .expectBody(String.class)
+                        .returnResult()
+                        .getResponseBody();
 
         assertThat(responseBody).isNotNull();
-        
+
         // Verify it can be parsed as JSON
         try {
             @SuppressWarnings("unchecked")
@@ -393,11 +393,14 @@ class OpenApiIntegrationTest {
                 .expectStatus()
                 .isOk()
                 .expectBody()
-                .jsonPath("$.paths./api/v1/orders/{orderId}.get.responses.200.content.application/json")
+                .jsonPath(
+                        "$.paths./api/v1/orders/{orderId}.get.responses.200.content.application/json")
                 .exists()
-                .jsonPath("$.paths./api/v1/orders/{orderId}.get.responses.404.content.application/json")
+                .jsonPath(
+                        "$.paths./api/v1/orders/{orderId}.get.responses.404.content.application/json")
                 .exists()
-                .jsonPath("$.paths./api/v1/orders/{orderId}.get.responses.500.content.application/json")
+                .jsonPath(
+                        "$.paths./api/v1/orders/{orderId}.get.responses.500.content.application/json")
                 .exists();
     }
 

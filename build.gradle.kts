@@ -107,7 +107,7 @@ spotless {
             """
             /*
              * Copyright (c) 2025 Resilient Order Enricher
-             * 
+             *
              * Licensed under the MIT License.
              */
             """.trimIndent(),

@@ -11,6 +11,10 @@ build/
 *.nar
 hs_err_pid*
 
+# Go
+bin/
+*.exe
+
 # IDE
 .idea/
 *.iml

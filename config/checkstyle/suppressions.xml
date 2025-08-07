@@ -6,23 +6,23 @@
 <suppressions>
     <!-- Suppress DesignForExtension for Spring Boot configuration classes -->
     <suppress checks="DesignForExtension" files=".*Config\.java"/>
-    
+
     <!-- Suppress FinalParameters for test files -->
     <suppress checks="FinalParameters" files=".*Test\.java"/>
     <suppress checks="FinalParameters" files=".*Tests\.java"/>
-    
+
     <!-- Suppress MagicNumber for test files -->
     <suppress checks="MagicNumber" files=".*Test\.java"/>
     <suppress checks="MagicNumber" files=".*Tests\.java"/>
-    
+
     <!-- Suppress HiddenField for DTOs and entities -->
     <suppress checks="HiddenField" files=".*dto.*\.java"/>
     <suppress checks="HiddenField" files=".*entity.*\.java"/>
-    
+
     <!-- Suppress VisibilityModifier for Spring Boot entities and DTOs -->
     <suppress checks="VisibilityModifier" files=".*entity.*\.java"/>
     <suppress checks="VisibilityModifier" files=".*dto.*\.java"/>
-    
+
     <!-- Suppress TodoComment for development -->
     <suppress checks="TodoComment" files=".*"/>
 </suppressions>

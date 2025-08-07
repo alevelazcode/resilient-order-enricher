@@ -32,7 +32,10 @@ public class GlobalExceptionHandler {
     public Mono<ResponseEntity<ErrorResponse>> handleOrderNotFound(OrderNotFoundException ex) {
         logger.error("Order not found: {}", ex.getMessage());
         ErrorResponse error =
-                new ErrorResponse("ORDER_NOT_FOUND", ex.getMessage(), LocalDateTime.now(ZoneId.systemDefault()));
+                new ErrorResponse(
+                        "ORDER_NOT_FOUND",
+                        ex.getMessage(),
+                        LocalDateTime.now(ZoneId.systemDefault()));
         return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
     }
 
@@ -41,7 +44,10 @@ public class GlobalExceptionHandler {
             CustomerNotFoundException ex) {
         logger.error("Customer not found: {}", ex.getMessage());
         ErrorResponse error =
-                new ErrorResponse("CUSTOMER_NOT_FOUND", ex.getMessage(), LocalDateTime.now(ZoneId.systemDefault()));
+                new ErrorResponse(
+                        "CUSTOMER_NOT_FOUND",
+                        ex.getMessage(),
+                        LocalDateTime.now(ZoneId.systemDefault()));
         return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
     }
 
@@ -49,7 +55,10 @@ public class GlobalExceptionHandler {
     public Mono<ResponseEntity<ErrorResponse>> handleProductNotFound(ProductNotFoundException ex) {
         logger.error("Product not found: {}", ex.getMessage());
         ErrorResponse error =
-                new ErrorResponse("PRODUCT_NOT_FOUND", ex.getMessage(), LocalDateTime.now(ZoneId.systemDefault()));
+                new ErrorResponse(
+                        "PRODUCT_NOT_FOUND",
+                        ex.getMessage(),
+                        LocalDateTime.now(ZoneId.systemDefault()));
         return Mono.just(ResponseEntity.status(HttpStatus.NOT_FOUND).body(error));
     }
 
@@ -57,7 +66,10 @@ public class GlobalExceptionHandler {
     public Mono<ResponseEntity<ErrorResponse>> handleOrderProcessing(OrderProcessingException ex) {
         logger.error("Order processing error: {}", ex.getMessage());
         ErrorResponse error =
-                new ErrorResponse("ORDER_PROCESSING_ERROR", ex.getMessage(), LocalDateTime.now(ZoneId.systemDefault()));
+                new ErrorResponse(
+                        "ORDER_PROCESSING_ERROR",
+                        ex.getMessage(),
+                        LocalDateTime.now(ZoneId.systemDefault()));
         return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error));
     }
 
@@ -65,7 +77,10 @@ public class GlobalExceptionHandler {
     public Mono<ResponseEntity<ErrorResponse>> handleExternalApi(ExternalApiException ex) {
         logger.error("External API error: {}", ex.getMessage());
         ErrorResponse error =
-                new ErrorResponse("EXTERNAL_API_ERROR", ex.getMessage(), LocalDateTime.now(ZoneId.systemDefault()));
+                new ErrorResponse(
+                        "EXTERNAL_API_ERROR",
+                        ex.getMessage(),
+                        LocalDateTime.now(ZoneId.systemDefault()));
         return Mono.just(ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error));
     }
 
@@ -91,7 +106,9 @@ public class GlobalExceptionHandler {
         logger.error("Unexpected error: {}", ex.getMessage(), ex);
         ErrorResponse error =
                 new ErrorResponse(
-                        "INTERNAL_ERROR", "An unexpected error occurred", LocalDateTime.now(ZoneId.systemDefault()));
+                        "INTERNAL_ERROR",
+                        "An unexpected error occurred",
+                        LocalDateTime.now(ZoneId.systemDefault()));
         return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error));
     }
 

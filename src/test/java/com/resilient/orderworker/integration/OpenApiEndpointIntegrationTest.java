@@ -44,11 +44,9 @@ import reactor.core.publisher.Mono;
 @DisplayName("OpenAPI Endpoint Integration Tests")
 class OpenApiEndpointIntegrationTest {
 
-    @Autowired
-    private WebTestClient webTestClient;
+    @Autowired private WebTestClient webTestClient;
 
-    @MockBean
-    private OrderRepository orderRepository;
+    @MockBean private OrderRepository orderRepository;
 
     private Order sampleOrder;
 
@@ -104,7 +102,8 @@ class OpenApiEndpointIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/orders/{orderId} should return 404 as documented when order not found")
+    @DisplayName(
+            "GET /api/v1/orders/{orderId} should return 404 as documented when order not found")
     void getOrderById_ShouldReturn404AsDocumented() {
         // Given
         when(orderRepository.findByOrderId("order-99999")).thenReturn(Mono.empty());
@@ -221,7 +220,9 @@ class OpenApiEndpointIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /api/v1/orders/customer/{customerId} should return 404 as documented when no orders found")
+    @DisplayName(
+            "GET /api/v1/orders/customer/{customerId} should return 404 as documented when no"
+                    + " orders found")
     void getOrdersByCustomerId_ShouldReturn404AsDocumented() {
         // Given
         when(orderRepository.findByCustomerId("customer-99999")).thenReturn(Flux.empty());
@@ -274,13 +275,13 @@ class OpenApiEndpointIntegrationTest {
         when(orderRepository.count()).thenReturn(Mono.just(1L));
 
         // Test valid sort parameters as documented
-        List<String> validSorts = List.of(
-                "orderId,asc", "orderId,desc",
-                "customerId,asc", "customerId,desc",
-                "totalAmount,asc", "totalAmount,desc",
-                "processedAt,asc", "processedAt,desc",
-                "status,asc", "status,desc"
-        );
+        List<String> validSorts =
+                List.of(
+                        "orderId,asc", "orderId,desc",
+                        "customerId,asc", "customerId,desc",
+                        "totalAmount,asc", "totalAmount,desc",
+                        "processedAt,asc", "processedAt,desc",
+                        "status,asc", "status,desc");
 
         for (String sort : validSorts) {
             webTestClient
@@ -325,7 +326,8 @@ class OpenApiEndpointIntegrationTest {
     @DisplayName("API endpoints should handle errors as documented in OpenAPI spec")
     void apiEndpoints_ShouldHandleErrorsAsDocumented() {
         // Given
-        when(orderRepository.findByOrderId("order-12345")).thenReturn(Mono.error(new RuntimeException("Database error")));
+        when(orderRepository.findByOrderId("order-12345"))
+                .thenReturn(Mono.error(new RuntimeException("Database error")));
 
         // When & Then - Validate error response structure as per OpenAPI spec
         webTestClient

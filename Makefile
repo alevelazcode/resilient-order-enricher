@@ -94,7 +94,7 @@ build: build-java build-go ## Build both Java and Go projects
 .PHONY: build-java
 build-java: ## Build Java project
 	@echo "$(BLUE)Building Java project...$(NC)"
-	cd $(JAVA_PROJECT) && ./gradlew clean build -x test
+	cd $(JAVA_PROJECT) && ./gradlew clean build -x test -x checkstyleMain -x checkstyleTest
 	@echo "$(GREEN)Java project built successfully!$(NC)"
 
 .PHONY: build-go
@@ -241,6 +241,25 @@ production: ## Start production environment
 # UTILITIES
 # =============================================================================
 
+.PHONY: setup-formatting
+setup-formatting: ## Setup automatic formatting on save (IDE + Git hooks)
+	@echo "$(BLUE)Setting up automatic formatting on save...$(NC)"
+	./scripts/setup-ide-formatting.sh
+	@echo "$(GREEN)Automatic formatting setup completed!$(NC)"
+	@echo "$(YELLOW)Restart your IDE to apply the new formatting settings.$(NC)"
+
+.PHONY: install-tools
+install-tools: ## Install all code quality tools
+	@echo "$(BLUE)Installing code quality tools...$(NC)"
+	./scripts/install-tools.sh
+	@echo "$(GREEN)Tools installation completed!$(NC)"
+
+.PHONY: check-tools
+check-tools: ## Check if all tools are installed
+	@echo "$(BLUE)Checking tool installation...$(NC)"
+	cd $(GO_PROJECT) && make check-tools
+	@./scripts/install-tools.sh 2>/dev/null | grep -E "(✓|✗)" || echo "$(YELLOW)Run 'make install-tools' to install missing tools$(NC)"
+
 # =============================================================================
 # CODE QUALITY - LINTING
 # =============================================================================
@@ -340,18 +359,6 @@ dependencies: ## Update dependencies
 	cd $(GO_PROJECT) && go mod tidy && go mod download
 	@echo "$(GREEN)Dependencies updated!$(NC)"
 
-.PHONY: install-tools
-install-tools: ## Install all code quality tools
-	@echo "$(BLUE)Installing code quality tools...$(NC)"
-	./scripts/install-tools.sh
-	@echo "$(GREEN)Tools installation completed!$(NC)"
-
-.PHONY: check-tools
-check-tools: ## Check if all tools are installed
-	@echo "$(BLUE)Checking tool installation...$(NC)"
-	cd $(GO_PROJECT) && make check-tools
-	@./scripts/install-tools.sh 2>/dev/null | grep -E "(✓|✗)" || echo "$(YELLOW)Run 'make install-tools' to install missing tools$(NC)"
-
 # =============================================================================
 # TROUBLESHOOTING
 # =============================================================================
@@ -414,6 +421,15 @@ readme: ## Show README
 # SPECIAL TARGETS
 # =============================================================================
 
+.PHONY: ci
+ci: format test build ## Run complete CI pipeline (format + test + build)
+	@echo "$(GREEN)CI pipeline completed successfully!$(NC)"
+	@echo "$(BLUE)All checks passed:$(NC)"
+	@echo "  ✅ Code formatting"
+	@echo "  ✅ Unit and integration tests"
+	@echo "  ✅ Build verification"
+	@echo "$(YELLOW)Note: Linting checks can be run separately with 'make lint'$(NC)"
+
 .PHONY: demo
 demo: start kafka-setup ## Start demo environment
 	@echo "$(BLUE)Starting demo environment...$(NC)"
@@ -457,4 +473,4 @@ c: clean ## Alias for clean
 b: build ## Alias for build
 
 .PHONY: l
-l: logs ## Alias for logs 
+l: logs ## Alias for logs

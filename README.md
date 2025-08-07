@@ -1,22 +1,451 @@
 # Resilient Order Enricher
 
-A robust, scalable order processing system built with **Java Spring Boot** and **Go**, featuring Kafka message consumption, data enrichment, MongoDB storage, and Redis-based resilience patterns.
+A robust, scalable order processing system built with **Java Spring Boot** and
+**Go**, featuring Kafka message consumption, data enrichment, MongoDB storage,
+and Redis-based resilience patterns.
+
+## 🎯 Technical Challenge Statement
+
+### **Technical Challenge: Java & Go Worker for Order Processing with Data Enrichment and Resilience**
+
+#### **Overview**
+
+Develop a Java worker that processes orders efficiently and reliably. The worker
+must:
+
+- Consume messages from a Kafka topic containing basic order information.
+- Enrich the data by calling external APIs written in Go.
+- Persist the processed data in MongoDB.
+
+#### **Detailed Requirements**
+
+**1. Kafka Message Consumption**
+
+- Subscribe to a Kafka topic.
+- Each message contains:
+  - Order ID
+  - Customer ID
+  - Product list
+
+**2. Data Enrichment**
+
+- Call a Go API to:
+  - Retrieve product details (name, description, price, etc.).
+  - Retrieve customer details.
+
+**3. Data Validation**
+
+- Ensure that:
+  - Products exist in the catalog.
+  - The customer exists and is active.
+
+**4. Storage in MongoDB**
+
+- Save processed orders using the following structure:
+
+```json
+{
+  "_id": ObjectId(),
+  "orderId": "order-123",
+  "customerId": "customer-456",
+  "products": [
+    {
+      "productId": "product-789",
+      "name": "Laptop",
+      "price": 999
+    }
+  ]
+}
+```
+
+**5. Error Handling and Retry Logic**
+
+- Implement exponential back-off retries for API calls.
+- Use Redis to store failed messages along with an attempt counter.
+- Configure maximum retries and wait time between attempts.
+
+**6. Handling Locked Customers**
+
+- Use a distributed lock (Redis) to prevent multiple instances from processing
+  the same order simultaneously.
+
+#### **Suggested Technologies and Tools**
+
+- Java 21 (mandatory)
+- Spring Boot, Java WebFlux (mandatory)
+- Go
+- Kafka
+- MongoDB
+- Redis
+- GitHub / GitLab for version control
+
+#### **Additional Considerations**
+
+- Design: Modular, well-structured, and easy to maintain.
+- Testing: Include unit tests.
+- Performance: Optimize with caching, indexes, and best practices.
+- Scalability: Plan for growing order volumes.
+
+---
+
+## ✅ **Verification Guide: How to Check Each Objective**
+
+This section provides step-by-step instructions to verify that each technical
+challenge requirement is met.
+
+### **🔍 Quick Verification Commands**
+
+```bash
+# 1. Run complete verification (recommended)
+make ci                    # Runs: format + lint + test + build
+
+# 2. Start services and run demo
+make demo                  # Start services + setup kafka + send test message
+
+# 3. Verify everything works
+make health               # Check all services are healthy
+make check-mongo          # Verify data was stored in MongoDB
+```
+
+### **📋 Detailed Verification Steps**
+
+#### **1. ✅ Kafka Message Consumption**
+
+**Objective**: Subscribe to a Kafka topic with messages containing `orderId`,
+`customerId`, `products[]`
+
+**Verification Steps**:
+
+```bash
+# Start services
+make start
+
+# Check Kafka is running
+make logs-kafka
+
+# Send test message
+make send-test-message
+
+# Verify message was consumed (check Java Worker logs)
+make logs-java
+```
+
+**Expected Result**:
+
+- Kafka topic `orders` is created
+- Test message is sent successfully
+- Java Worker logs show message consumption
+- No errors in processing
+
+**Code Location**:
+
+- `src/main/java/com/resilient/orderworker/order/consumer/OrderConsumer.java`
+- `src/main/java/com/resilient/orderworker/order/dto/OrderMessage.java`
+
+#### **2. ✅ Data Enrichment via Go API**
+
+**Objective**: Call Go APIs to retrieve product and customer details
+
+**Verification Steps**:
+
+```bash
+# Check Go API is running
+curl http://localhost:8090/health
+
+# Test customer API
+curl http://localhost:8090/v1/customers/customer-456
+
+# Test product API
+curl http://localhost:8090/v1/products/product-789
+
+# Check enrichment in Java Worker logs
+make logs-java
+```
+
+**Expected Result**:
+
+- Go API responds with customer/product data
+- Java Worker logs show successful API calls
+- Data is enriched with customer names and product details
+
+**Code Location**:
+
+- `services/enricher-api-go/` (Go API)
+- `src/main/java/com/resilient/orderworker/customer/service/CustomerService.java`
+- `src/main/java/com/resilient/orderworker/product/service/ProductService.java`
+
+#### **3. ✅ Data Validation**
+
+**Objective**: Ensure products exist in catalog and customers are active
+
+**Verification Steps**:
+
+```bash
+# Test with valid data
+make send-test-message
+
+# Test with invalid customer (should fail)
+curl -X POST http://localhost:8081/api/v1/orders \
+  -H "Content-Type: application/json" \
+  -d '{"orderId":"test-123","customerId":"invalid-customer","products":[{"productId":"product-789","quantity":1}]}'
+
+# Check validation logs
+make logs-java
+```
+
+**Expected Result**:
+
+- Valid orders are processed successfully
+- Invalid customers/products are rejected with appropriate errors
+- Validation errors are logged
+
+**Code Location**:
+
+- `src/main/java/com/resilient/orderworker/order/service/OrderProcessingService.java`
+  (lines 116-136)
+
+#### **4. ✅ MongoDB Storage**
+
+**Objective**: Save processed orders with exact required structure
+
+**Verification Steps**:
+
+```bash
+# Send test message
+make send-test-message
+
+# Check MongoDB data
+make check-mongo
+
+# Or manually check
+docker exec order-worker-mongo-1 mongosh --eval "db = db.getSiblingDB('order_worker'); db.orders.find().pretty()"
+```
+
+**Expected Result**:
+
+- Orders are stored in MongoDB with exact structure:
+  - `_id`: ObjectId
+  - `orderId`: "order-123"
+  - `customerId`: "customer-456"
+  - `products`: Array with `productId`, `name`, `price`
+
+**Code Location**:
+
+- `src/main/java/com/resilient/orderworker/order/entity/Order.java`
+- `src/main/java/com/resilient/orderworker/order/repository/OrderRepository.java`
+
+#### **5. ✅ Error Handling and Retry Logic**
+
+**Objective**: Exponential back-off retries with Redis storage
+
+**Verification Steps**:
+
+```bash
+# Check Redis is running
+make check-redis
+
+# Check retry configuration
+cat src/main/resources/application.yml | grep -A 20 "resilience4j"
+
+# Test with failing API (temporarily stop Go API)
+make stop
+make start enricher-api  # Start only Go API
+# Send message and check retry behavior
+make send-test-message
+make logs-java
+```
+
+**Expected Result**:
+
+- Retry attempts are logged with exponential backoff
+- Circuit breaker patterns are implemented
+- Failed messages are handled gracefully
+
+**Code Location**:
+
+- `src/main/resources/application.yml` (lines 77-123)
+- `src/main/java/com/resilient/orderworker/customer/service/CustomerService.java`
+- `src/main/java/com/resilient/orderworker/product/service/ProductService.java`
+
+#### **6. ✅ Distributed Locking**
+
+**Objective**: Use Redis to prevent multiple instances from processing the same
+order
+
+**Verification Steps**:
+
+```bash
+# Check Redis locks
+make check-redis
+
+# Send duplicate message (should be handled by locking)
+make send-test-message
+make send-test-message  # Same order ID
+
+# Check locking behavior in logs
+make logs-java
+```
+
+**Expected Result**:
+
+- Duplicate orders are handled by distributed locking
+- Lock acquisition/release is logged
+- No duplicate processing occurs
+
+**Code Location**:
+
+- `src/main/java/com/resilient/orderworker/infrastructure/redis/RedisDistributedLockService.java`
+- `src/main/java/com/resilient/orderworker/order/service/OrderProcessingService.java`
+
+### **🧪 Automated Testing Verification**
+
+**Run all tests to verify implementation**:
+
+```bash
+# Run all tests
+make test
+
+# Run with coverage
+make test-coverage
+
+# Run specific test categories
+make test-java    # Java tests only
+make test-go      # Go tests only
+```
+
+**Expected Result**:
+
+- All tests pass (50+ tests)
+- High test coverage (>80%)
+- Integration tests with real dependencies
+
+### **📊 Performance and Scalability Verification**
+
+**Check performance optimizations**:
+
+```bash
+# Check service health and metrics
+make health
+
+# View application metrics
+make metrics
+
+# Check database indexes
+docker exec order-worker-mongo-1 mongosh --eval "db = db.getSiblingDB('order_worker'); db.orders.getIndexes()"
+```
+
+**Expected Result**:
+
+- Services respond quickly (<2s)
+- Database queries are optimized
+- System can handle concurrent requests
+
+### **🔧 Code Quality Verification**
+
+**Check code quality standards**:
+
+```bash
+# Run code quality checks
+make quality-check
+
+# Check formatting
+make check-format
+
+# Run linting
+make lint
+```
+
+**Expected Result**:
+
+- Code follows style guidelines
+- No linting errors
+- High code quality scores
+
+---
 
 ## 🚀 Quick Start with Makefile
 
-The project includes a comprehensive **Makefile** with developer-friendly shortcuts for all common tasks:
+The project includes a comprehensive **Makefile** with developer-friendly
+shortcuts for all common tasks:
 
 ### 📋 Available Commands
 
 ```bash
-# Show all available commands
-make help
-
-# Quick Start Commands
+# Core operations
 make start          # Start all services
+make stop           # Stop all services
 make test           # Run all tests
-make logs           # Show all logs
+make build          # Build both projects
 make clean          # Clean everything
+
+# Development
+make dev            # Start development environment
+make format         # Format all code automatically
+make lint           # Run linting checks
+make setup-formatting # Setup automatic formatting on save
+
+# Quality checks
+make ci             # Run complete CI pipeline
+make quality-check  # Run comprehensive quality checks
+
+# Monitoring
+make logs           # Show all logs
+make health         # Check service health
+make status         # Show service status
+```
+
+### 🎯 Automatic Formatting on Save (Like Husky)
+
+This project includes **automatic formatting on save** similar to Husky in
+JavaScript environments. Here's how it works:
+
+#### **Setup Automatic Formatting**
+
+```bash
+# Setup automatic formatting for your IDE
+make setup-formatting
+```
+
+This command will:
+
+- ✅ Configure VS Code settings for automatic formatting
+- ✅ Set up pre-commit hooks for auto-fixing
+- ✅ Create EditorConfig for consistent formatting
+- ✅ Install Git hooks for automatic formatting on commit
+- ✅ Configure IDE-specific formatting rules
+
+#### **How It Works**
+
+1. **On Save**: Your IDE will automatically format code when you save files
+2. **On Commit**: Pre-commit hooks automatically fix formatting issues
+3. **On Push**: Additional checks ensure code quality before pushing
+
+#### **Supported IDEs**
+
+- **VS Code**: Fully configured with recommended extensions
+- **IntelliJ IDEA**: Manual setup instructions provided
+- **Eclipse**: Manual setup instructions provided
+
+#### **Manual Formatting**
+
+```bash
+# Format all code manually
+make format
+
+# Format specific languages
+make format-java    # Format Java code
+make format-go      # Format Go code
+```
+
+#### **Quality Checks**
+
+```bash
+# Run all quality checks
+make quality-check
+
+# Run specific checks
+make lint           # Linting only
+make check-format   # Format checking only
 ```
 
 ### 🎯 Most Used Commands
@@ -154,15 +583,23 @@ make logs-all
 
 ### Feature-Based Architecture
 
-This project implements a **feature-based architecture** that organizes code by business functionality rather than technical layers. This architectural pattern was chosen specifically for this order processing system because:
+This project implements a **feature-based architecture** that organizes code by
+business functionality rather than technical layers. This architectural pattern
+was chosen specifically for this order processing system because:
 
 **Why Feature-Based for Order Processing?**
 
-- **Business Domain Alignment**: Each feature (`order/`, `customer/`, `product/`) represents a distinct business domain in the order enrichment workflow
-- **Team Scalability**: Multiple developers can work on different features without conflicts
-- **Maintainability**: Changes to order processing logic don't affect customer or product features
-- **Testing Isolation**: Each feature can be tested independently with its own test suite
-- **Deployment Flexibility**: Features can be extracted into microservices if needed
+- **Business Domain Alignment**: Each feature (`order/`, `customer/`,
+  `product/`) represents a distinct business domain in the order enrichment
+  workflow
+- **Team Scalability**: Multiple developers can work on different features
+  without conflicts
+- **Maintainability**: Changes to order processing logic don't affect customer
+  or product features
+- **Testing Isolation**: Each feature can be tested independently with its own
+  test suite
+- **Deployment Flexibility**: Features can be extracted into microservices if
+  needed
 
 ### Java Spring Boot Structure
 
@@ -332,7 +769,8 @@ The system is composed of 6 Docker services orchestrated with Docker Compose:
 
 ### Environment Configuration
 
-The project uses environment variables for configuration. Copy `.env.sample` to `.env` to customize:
+The project uses environment variables for configuration. Copy `.env.sample` to
+`.env` to customize:
 
 ```bash
 # Copy sample environment file
@@ -374,7 +812,8 @@ RETRY_MAX_ATTEMPTS=3
 RETRY_WAIT_DURATION=1s
 ```
 
-See `env.sample` for the complete configuration reference with all available options.
+See `env.sample` for the complete configuration reference with all available
+options.
 
 ### Resilience Patterns
 
@@ -386,7 +825,8 @@ See `env.sample` for the complete configuration reference with all available opt
 
 ## 🧪 Testing Strategy
 
-The project implements comprehensive testing at multiple levels to ensure reliability and maintainability.
+The project implements comprehensive testing at multiple levels to ensure
+reliability and maintainability.
 
 ### Java Testing Framework
 
@@ -643,7 +1083,8 @@ make logs-all
 
 ### Interactive Swagger UI
 
-The project includes comprehensive OpenAPI 3.0 documentation with interactive Swagger UI for easy API exploration and testing.
+The project includes comprehensive OpenAPI 3.0 documentation with interactive
+Swagger UI for easy API exploration and testing.
 
 **🎯 Access Swagger UI:**
 
@@ -884,7 +1325,8 @@ http://localhost:8081/v3/api-docs
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
+for details.
 
 ## 🙏 Acknowledgments
 

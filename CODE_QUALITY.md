@@ -1,6 +1,7 @@
 # 🏆 Code Quality Guide
 
-This project enforces high code quality standards through automated formatting, linting, and static analysis tools for both **Java** and **Go** codebases.
+This project enforces high code quality standards through automated formatting,
+linting, and static analysis tools for both **Java** and **Go** codebases.
 
 ## 🚀 Quick Start
 
@@ -57,7 +58,8 @@ make quality-report
 
 ### Tools Used
 
-- **[Spotless](https://github.com/diffplug/spotless)**: Code formatting with Google Java Format
+- **[Spotless](https://github.com/diffplug/spotless)**: Code formatting with
+  Google Java Format
 - **[Checkstyle](https://checkstyle.sourceforge.io/)**: Code style checking
 - **[Error Prone](https://errorprone.info/)**: Static analysis for bug detection
 
@@ -107,8 +109,10 @@ make quality-report
 ### Tools Used
 
 - **[gofumpt](https://github.com/mvdan/gofumpt)**: Stricter gofmt formatting
-- **[goimports](https://godoc.org/golang.org/x/tools/cmd/goimports)**: Import organization
-- **[golangci-lint](https://github.com/golangci/golangci-lint)**: Comprehensive linting
+- **[goimports](https://godoc.org/golang.org/x/tools/cmd/goimports)**: Import
+  organization
+- **[golangci-lint](https://github.com/golangci/golangci-lint)**: Comprehensive
+  linting
 
 ### Configuration Files
 
@@ -166,7 +170,8 @@ make report
 
 ## 🔄 Pre-commit Hooks
 
-Automated quality checks run on every commit using [pre-commit](https://pre-commit.com/).
+Automated quality checks run on every commit using
+[pre-commit](https://pre-commit.com/).
 
 ### Setup
 

@@ -23,13 +23,13 @@ command_exists() {
 # Function to install Go tools
 install_go_tools() {
     echo -e "${BLUE}Installing Go tools...${NC}"
-    
+
     # Check if Go is installed
     if ! command_exists go; then
         echo -e "${RED}Go is not installed. Please install Go first.${NC}"
         exit 1
     fi
-    
+
     # Install goimports
     if ! command_exists goimports; then
         echo -e "${YELLOW}Installing goimports...${NC}"
@@ -37,7 +37,7 @@ install_go_tools() {
     else
         echo -e "${GREEN}goimports already installed${NC}"
     fi
-    
+
     # Install gofumpt
     if ! command_exists gofumpt; then
         echo -e "${YELLOW}Installing gofumpt...${NC}"
@@ -45,7 +45,7 @@ install_go_tools() {
     else
         echo -e "${GREEN}gofumpt already installed${NC}"
     fi
-    
+
     # Install golangci-lint
     if ! command_exists golangci-lint; then
         echo -e "${YELLOW}Installing golangci-lint...${NC}"
@@ -58,12 +58,12 @@ install_go_tools() {
 # Function to install pre-commit
 install_pre_commit() {
     echo -e "${BLUE}Installing pre-commit...${NC}"
-    
+
     if command_exists pre-commit; then
         echo -e "${GREEN}pre-commit already installed${NC}"
         return 0
     fi
-    
+
     # Try different installation methods
     if command_exists pip3; then
         echo -e "${YELLOW}Installing pre-commit with pip3...${NC}"
@@ -93,13 +93,13 @@ install_pre_commit() {
 # Function to install Node.js tools (for prettier)
 install_node_tools() {
     echo -e "${BLUE}Installing Node.js tools...${NC}"
-    
+
     if ! command_exists node; then
         echo -e "${YELLOW}Node.js not found. Prettier formatting may not work.${NC}"
         echo -e "${YELLOW}Consider installing Node.js for better formatting support.${NC}"
         return 0
     fi
-    
+
     if ! command_exists prettier; then
         echo -e "${YELLOW}Installing prettier globally...${NC}"
         npm install -g prettier
@@ -111,7 +111,7 @@ install_node_tools() {
 # Function to setup pre-commit hooks
 setup_pre_commit() {
     echo -e "${BLUE}Setting up pre-commit hooks...${NC}"
-    
+
     if command_exists pre-commit; then
         pre-commit install
         echo -e "${GREEN}Pre-commit hooks installed${NC}"
@@ -124,7 +124,7 @@ setup_pre_commit() {
 verify_installation() {
     echo -e "${BLUE}Verifying tool installation...${NC}"
     echo ""
-    
+
     # Check Go tools
     echo -e "${YELLOW}Go Tools:${NC}"
     if command_exists go; then
@@ -132,27 +132,27 @@ verify_installation() {
     else
         echo -e "  ✗ go: not installed"
     fi
-    
+
     if command_exists goimports; then
         echo -e "  ✓ goimports: installed"
     else
         echo -e "  ✗ goimports: not installed"
     fi
-    
+
     if command_exists gofumpt; then
         echo -e "  ✓ gofumpt: installed"
     else
         echo -e "  ✗ gofumpt: not installed"
     fi
-    
+
     if command_exists golangci-lint; then
         echo -e "  ✓ golangci-lint: $(golangci-lint version --format short 2>/dev/null || echo 'installed')"
     else
         echo -e "  ✗ golangci-lint: not installed"
     fi
-    
+
     echo ""
-    
+
     # Check Java tools (Gradle handles these)
     echo -e "${YELLOW}Java Tools:${NC}"
     if command_exists java; then
@@ -160,15 +160,15 @@ verify_installation() {
     else
         echo -e "  ✗ java: not installed"
     fi
-    
+
     if [ -f "./gradlew" ]; then
         echo -e "  ✓ gradle: available via gradlew"
     else
         echo -e "  ✗ gradle: gradlew not found"
     fi
-    
+
     echo ""
-    
+
     # Check other tools
     echo -e "${YELLOW}Other Tools:${NC}"
     if command_exists pre-commit; then
@@ -176,19 +176,19 @@ verify_installation() {
     else
         echo -e "  ✗ pre-commit: not installed"
     fi
-    
+
     if command_exists prettier; then
         echo -e "  ✓ prettier: $(prettier --version)"
     else
         echo -e "  ✗ prettier: not installed"
     fi
-    
+
     if command_exists docker; then
         echo -e "  ✓ docker: $(docker --version | cut -d' ' -f3 | tr -d ',')"
     else
         echo -e "  ✗ docker: not installed"
     fi
-    
+
     echo ""
 }
 
@@ -196,22 +196,22 @@ verify_installation() {
 main() {
     echo -e "${BLUE}=== Code Quality Tools Installation ===${NC}"
     echo ""
-    
+
     # Install tools
     install_go_tools
     echo ""
-    
+
     install_pre_commit
     echo ""
-    
+
     install_node_tools
     echo ""
-    
+
     setup_pre_commit
     echo ""
-    
+
     verify_installation
-    
+
     echo -e "${GREEN}=== Installation Complete! ===${NC}"
     echo ""
     echo -e "${YELLOW}Next steps:${NC}"
