@@ -9,11 +9,13 @@ import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /** Redis configuration using Redisson for distributed locks and caching. */
 @Configuration
+@ConditionalOnProperty(name = "spring.redis.enabled", havingValue = "true", matchIfMissing = true)
 public class RedisConfig {
 
     @Value("${spring.redis.host:localhost}")
