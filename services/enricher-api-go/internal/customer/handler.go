@@ -1,3 +1,8 @@
+// Package customer provides HTTP handlers for customer-related operations
+// in the Resilient Order Enricher API.
+//
+// This package contains the HTTP layer for customer operations, including
+// request/response handling, validation, and error management.
 package customer
 
 import (
@@ -6,19 +11,69 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// Handler handles HTTP requests for customers
+// Handler handles HTTP requests for customer operations.
+//
+// This struct provides HTTP endpoints for customer CRUD operations,
+// including GET, POST, PUT, DELETE, and status check operations.
+// It integrates with the customer service layer for business logic.
+//
+// Example usage:
+//
+//	service := customer.NewService(repo)
+//	handler := customer.NewHandler(service)
+//	e.GET("/v1/customers/:id", handler.GetCustomer)
 type Handler struct {
 	service Service
 }
 
-// NewHandler creates a new customer handler
+// NewHandler creates a new customer handler instance.
+//
+// This function creates and returns a new Handler with the provided
+// service dependency.
+//
+// Args:
+//   - service: Service implementation for business logic
+//
+// Returns:
+//   - *Handler: new customer handler instance
+//
+// Example usage:
+//
+//	service := customer.NewService(repo)
+//	handler := customer.NewHandler(service)
 func NewHandler(service Service) *Handler {
 	return &Handler{
 		service: service,
 	}
 }
 
-// GetCustomer handles GET /v1/customers/:id
+// GetCustomer handles GET /v1/customers/:id requests.
+//
+// This method retrieves a customer by their unique identifier and returns
+// the customer information in JSON format. It includes comprehensive error
+// handling for various scenarios.
+//
+// Args:
+//   - c: Echo context containing the HTTP request and response
+//
+// Returns:
+//   - error: error if the operation fails
+//
+// Example request:
+//
+//	GET /v1/customers/customer-12345
+//
+// Example response:
+//
+//	{
+//		"customerId": "customer-12345",
+//		"name": "John Doe",
+//		"status": "ACTIVE"
+//	}
+//
+// Error responses:
+//   - 404: Customer not found
+//   - 500: Internal server error
 func (h *Handler) GetCustomer(c echo.Context) error {
 	customerID := c.Param("id")
 
@@ -37,7 +92,39 @@ func (h *Handler) GetCustomer(c echo.Context) error {
 	return c.JSON(http.StatusOK, customer.ToResponse())
 }
 
-// CreateCustomer handles POST /v1/customers
+// CreateCustomer handles POST /v1/customers requests.
+//
+// This method creates a new customer with the provided information and returns
+// the created customer in JSON format. It validates the request body and
+// handles various error scenarios.
+//
+// Args:
+//   - c: Echo context containing the HTTP request and response
+//
+// Returns:
+//   - error: error if the operation fails
+//
+// Example request:
+//
+//	POST /v1/customers
+//	Content-Type: application/json
+//
+//	{
+//		"name": "Jane Smith",
+//		"status": "ACTIVE"
+//	}
+//
+// Example response:
+//
+//	{
+//		"customerId": "customer-67890",
+//		"name": "Jane Smith",
+//		"status": "ACTIVE"
+//	}
+//
+// Error responses:
+//   - 400: Invalid request body or validation error
+//   - 500: Internal server error
 func (h *Handler) CreateCustomer(c echo.Context) error {
 	var req CustomerRequest
 	if err := c.Bind(&req); err != nil {
@@ -56,7 +143,40 @@ func (h *Handler) CreateCustomer(c echo.Context) error {
 	return c.JSON(http.StatusCreated, customer.ToResponse())
 }
 
-// UpdateCustomer handles PUT /v1/customers/:id
+// UpdateCustomer handles PUT /v1/customers/:id requests.
+//
+// This method updates an existing customer's information and returns
+// the updated customer in JSON format. It validates the request body
+// and handles various error scenarios including customer not found.
+//
+// Args:
+//   - c: Echo context containing the HTTP request and response
+//
+// Returns:
+//   - error: error if the operation fails
+//
+// Example request:
+//
+//	PUT /v1/customers/customer-12345
+//	Content-Type: application/json
+//
+//	{
+//		"name": "John Doe Updated",
+//		"status": "INACTIVE"
+//	}
+//
+// Example response:
+//
+//	{
+//		"customerId": "customer-12345",
+//		"name": "John Doe Updated",
+//		"status": "INACTIVE"
+//	}
+//
+// Error responses:
+//   - 400: Invalid request body or validation error
+//   - 404: Customer not found
+//   - 500: Internal server error
 func (h *Handler) UpdateCustomer(c echo.Context) error {
 	customerID := c.Param("id")
 
@@ -82,7 +202,30 @@ func (h *Handler) UpdateCustomer(c echo.Context) error {
 	return c.JSON(http.StatusOK, customer.ToResponse())
 }
 
-// DeleteCustomer handles DELETE /v1/customers/:id
+// DeleteCustomer handles DELETE /v1/customers/:id requests.
+//
+// This method removes a customer from the system and returns a success
+// response. It handles various error scenarios including customer not found.
+//
+// Args:
+//   - c: Echo context containing the HTTP request and response
+//
+// Returns:
+//   - error: error if the operation fails
+//
+// Example request:
+//
+//	DELETE /v1/customers/customer-12345
+//
+// Example response:
+//
+//	{
+//		"message": "Customer deleted successfully"
+//	}
+//
+// Error responses:
+//   - 404: Customer not found
+//   - 500: Internal server error
 func (h *Handler) DeleteCustomer(c echo.Context) error {
 	customerID := c.Param("id")
 

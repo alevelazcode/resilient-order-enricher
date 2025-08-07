@@ -1,3 +1,8 @@
+// Package customer provides customer-related business logic and data management
+// for the Resilient Order Enricher API.
+//
+// This package contains the service layer for customer operations, including
+// CRUD operations, validation, and business logic for customer management.
 package customer
 
 import (
@@ -5,29 +10,132 @@ import (
 	"log"
 )
 
-// Service defines the business logic interface for customers
+// Service defines the business logic interface for customer operations.
+//
+// This interface provides a contract for customer-related business operations
+// including CRUD operations, validation, and status checks.
+//
+// Example usage:
+//
+//	var customerService Service
+//	customer, err := customerService.GetCustomer("customer-12345")
+//	if err != nil {
+//		// Handle error
+//	}
 type Service interface {
+	// GetCustomer retrieves a customer by their unique identifier.
+	//
+	// Args:
+	//   - customerID: the unique identifier of the customer
+	//
+	// Returns:
+	//   - *Customer: the customer if found
+	//   - error: error if customer not found or other issues occur
 	GetCustomer(customerID string) (*Customer, error)
+
+	// CreateCustomer creates a new customer with the provided information.
+	//
+	// Args:
+	//   - req: CustomerRequest containing customer details
+	//
+	// Returns:
+	//   - *Customer: the newly created customer
+	//   - error: error if creation fails
 	CreateCustomer(req CustomerRequest) (*Customer, error)
+
+	// UpdateCustomer updates an existing customer's information.
+	//
+	// Args:
+	//   - customerID: the unique identifier of the customer to update
+	//   - req: CustomerRequest containing updated customer details
+	//
+	// Returns:
+	//   - *Customer: the updated customer
+	//   - error: error if update fails or customer not found
 	UpdateCustomer(customerID string, req CustomerRequest) (*Customer, error)
+
+	// DeleteCustomer removes a customer from the system.
+	//
+	// Args:
+	//   - customerID: the unique identifier of the customer to delete
+	//
+	// Returns:
+	//   - error: error if deletion fails or customer not found
 	DeleteCustomer(customerID string) error
+
+	// ListCustomers retrieves all customers in the system.
+	//
+	// Returns:
+	//   - []*Customer: list of all customers
+	//   - error: error if retrieval fails
 	ListCustomers() ([]*Customer, error)
+
+	// IsCustomerActive checks if a customer is currently active.
+	//
+	// Args:
+	//   - customerID: the unique identifier of the customer
+	//
+	// Returns:
+	//   - bool: true if customer is active, false otherwise
+	//   - error: error if check fails or customer not found
 	IsCustomerActive(customerID string) (bool, error)
 }
 
-// CustomerService implements the Service interface
+// CustomerService implements the Service interface for customer operations.
+//
+// This struct provides the concrete implementation of customer business logic,
+// including validation, data transformation, and repository coordination.
+//
+// Example usage:
+//
+//	repo := customer.NewRepository()
+//	service := customer.NewService(repo)
+//	customer, err := service.GetCustomer("customer-12345")
 type CustomerService struct {
 	repo Repository
 }
 
-// NewService creates a new customer service
+// NewService creates a new customer service instance.
+//
+// This function creates and returns a new CustomerService with the provided
+// repository dependency.
+//
+// Args:
+//   - repo: Repository implementation for data access
+//
+// Returns:
+//   - *CustomerService: new customer service instance
+//
+// Example usage:
+//
+//	repo := customer.NewRepository()
+//	service := customer.NewService(repo)
 func NewService(repo Repository) *CustomerService {
 	return &CustomerService{
 		repo: repo,
 	}
 }
 
-// GetCustomer retrieves a customer by ID
+// GetCustomer retrieves a customer by their unique identifier.
+//
+// This method validates the customer ID and retrieves the customer from
+// the repository. It includes comprehensive error handling and logging.
+//
+// Args:
+//   - customerID: the unique identifier of the customer
+//
+// Returns:
+//   - *Customer: the customer if found
+//   - error: error if customer not found or other issues occur
+//
+// Example usage:
+//
+//	customer, err := service.GetCustomer("customer-12345")
+//	if err != nil {
+//		log.Printf("Failed to get customer: %v", err)
+//		return
+//	}
+//	log.Printf("Retrieved customer: %s", customer.Name)
 func (s *CustomerService) GetCustomer(customerID string) (*Customer, error) {
 	log.Printf("Getting customer with ID: %s", customerID)
 
@@ -45,7 +153,30 @@ func (s *CustomerService) GetCustomer(customerID string) (*Customer, error) {
 	return customer, nil
 }
 
-// CreateCustomer creates a new customer
+// CreateCustomer creates a new customer with the provided information.
+//
+// This method validates the customer request, generates a unique ID,
+// creates the customer entity, and persists it to the repository.
+//
+// Args:
+//   - req: CustomerRequest containing customer details
+//
+// Returns:
+//   - *Customer: the newly created customer
+//   - error: error if creation fails
+//
+// Example usage:
+//
+//	req := CustomerRequest{
+//		Name:   "John Doe",
+//		Status: "ACTIVE",
+//	}
+//	customer, err := service.CreateCustomer(req)
+//	if err != nil {
+//		log.Printf("Failed to create customer: %v", err)
+//		return
+//	}
+//	log.Printf("Created customer with ID: %s", customer.CustomerID)
 func (s *CustomerService) CreateCustomer(req CustomerRequest) (*Customer, error) {
 	log.Printf("Creating new customer: %s", req.Name)
 
@@ -71,7 +202,31 @@ func (s *CustomerService) CreateCustomer(req CustomerRequest) (*Customer, error)
 	return customer, nil
 }
 
-// UpdateCustomer updates an existing customer
+// UpdateCustomer updates an existing customer's information.
+//
+// This method validates the customer ID and request, checks if the customer
+// exists, updates the customer information, and persists the changes.
+//
+// Args:
+//   - customerID: the unique identifier of the customer to update
+//   - req: CustomerRequest containing updated customer details
+//
+// Returns:
+//   - *Customer: the updated customer
+//   - error: error if update fails or customer not found
+//
+// Example usage:
+//
+//	req := CustomerRequest{
+//		Name:   "Jane Smith",
+//		Status: "INACTIVE",
+//	}
+//	customer, err := service.UpdateCustomer("customer-12345", req)
+//	if err != nil {
+//		log.Printf("Failed to update customer: %v", err)
+//		return
+//	}
+//	log.Printf("Updated customer: %s", customer.Name)
 func (s *CustomerService) UpdateCustomer(customerID string, req CustomerRequest) (*Customer, error) {
 	log.Printf("Updating customer with ID: %s", customerID)
 

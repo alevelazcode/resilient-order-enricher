@@ -27,7 +27,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @param last Whether this is the last page
  * @param hasNext Whether there is a next page
  * @param hasPrevious Whether there is a previous page
- * @author Resilient Order Enricher Team
+ * @author Alejandro Velazco
+ * @version 1.0.0
  * @since 1.0.0
  */
 @Schema(

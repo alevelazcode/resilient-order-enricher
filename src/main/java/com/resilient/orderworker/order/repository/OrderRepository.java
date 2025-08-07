@@ -20,7 +20,8 @@ import reactor.core.publisher.Mono;
  * pagination, filtering, and custom queries. All methods return reactive types (Mono/Flux) for
  * non-blocking database operations.
  *
- * @author Resilient Order Enricher Team
+ * @author Alejandro Velazco
+ * @version 1.0.0
  * @since 1.0.0
  */
 @Repository

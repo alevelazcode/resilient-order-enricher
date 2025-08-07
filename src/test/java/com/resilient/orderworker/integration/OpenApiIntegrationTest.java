@@ -35,7 +35,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *   <li>Schema validation
  * </ul>
  *
- * @author Resilient Order Enricher Team
+ * @author Alejandro Velazco
+ * @version 1.0.0
  * @since 1.0.0
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)

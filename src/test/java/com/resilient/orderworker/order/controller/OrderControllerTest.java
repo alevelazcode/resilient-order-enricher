@@ -33,7 +33,8 @@ import reactor.core.publisher.Mono;
  * <p>These tests verify the REST API functionality including proper HTTP status codes, response
  * structure, and error handling. They use mocked repository to focus on the web layer.
  *
- * @author Resilient Order Enricher Team
+ * @author Alejandro Velazco
+ * @version 1.0.0
  * @since 1.0.0
  */
 @WebFluxTest(OrderController.class)

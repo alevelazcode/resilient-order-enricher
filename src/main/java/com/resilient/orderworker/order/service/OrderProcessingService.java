@@ -26,7 +26,52 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Main service for processing orders. Coordinates enrichment, validation, and storage of orders.
+ * Main service for processing orders with comprehensive enrichment, validation, and storage
+ * capabilities.
+ *
+ * <p>This service orchestrates the complete order processing workflow, including:
+ *
+ * <ul>
+ *   <li><strong>Distributed Locking</strong>: Prevents duplicate processing of the same order
+ *   <li><strong>Data Enrichment</strong>: Retrieves customer and product details from external APIs
+ *   <li><strong>Validation</strong>: Ensures data integrity and business rules compliance
+ *   <li><strong>Persistence</strong>: Stores enriched orders in MongoDB
+ *   <li><strong>Error Handling</strong>: Implements comprehensive error handling and logging
+ * </ul>
+ *
+ * <p>The service uses reactive programming patterns with Spring WebFlux and implements resilience
+ * patterns including circuit breakers, retries, and distributed locking.
+ *
+ * <p><strong>Processing Flow:</strong>
+ *
+ * <ol>
+ *   <li>Acquire distributed lock for order ID
+ *   <li>Check if order already exists (idempotency)
+ *   <li>Enrich customer data from external API
+ *   <li>Enrich product data from external API (parallel)
+ *   <li>Validate enriched data
+ *   <li>Build and save order to MongoDB
+ *   <li>Release distributed lock
+ * </ol>
+ *
+ * <p><strong>Example Usage:</strong>
+ *
+ * <pre>{@code
+ * OrderMessage message = new OrderMessage("order-123", "customer-456", products);
+ * Order processedOrder = orderProcessingService.processOrder(message)
+ *     .doOnSuccess(order -> log.info("Order processed: {}", order.getOrderId()))
+ *     .doOnError(error -> log.error("Processing failed: {}", error.getMessage()))
+ *     .block();
+ * }</pre>
+ *
+ * @author Alejandro Velazco
+ * @version 1.0.0
+ * @since 1.0.0
+ * @see OrderMessage
+ * @see Order
+ * @see CustomerService
+ * @see ProductService
+ * @see DistributedLockService
  */
 @Service
 public class OrderProcessingService {
@@ -38,11 +83,19 @@ public class OrderProcessingService {
     private final ProductService productService;
     private final DistributedLockService lockService;
 
+    /**
+     * Constructs a new OrderProcessingService with the required dependencies.
+     *
+     * @param orderRepository repository for order persistence operations
+     * @param customerService service for customer data enrichment
+     * @param productService service for product data enrichment
+     * @param lockService service for distributed locking
+     */
     public OrderProcessingService(
-            OrderRepository orderRepository,
-            CustomerService customerService,
-            ProductService productService,
-            DistributedLockService lockService) {
+            final OrderRepository orderRepository,
+            final CustomerService customerService,
+            final ProductService productService,
+            final DistributedLockService lockService) {
         this.orderRepository = orderRepository;
         this.customerService = customerService;
         this.productService = productService;
@@ -50,20 +103,50 @@ public class OrderProcessingService {
     }
 
     /**
-     * Processes an order message with distributed locking.
+     * Processes an order message with distributed locking to prevent duplicate processing.
+     *
+     * <p>This method implements the main order processing workflow:
+     *
+     * <ul>
+     *   <li>Acquires a distributed lock using the order ID
+     *   <li>Checks for existing order to ensure idempotency
+     *   <li>Enriches order data with customer and product information
+     *   <li>Validates the enriched data
+     *   <li>Persists the order to MongoDB
+     *   <li>Releases the distributed lock
+     * </ul>
+     *
+     * <p>The method uses reactive programming patterns and returns a {@code Mono<Order>} that
+     * completes when the order processing is finished.
      *
      * @param orderMessage the order message to process
      * @return Mono containing the processed order
+     * @throws OrderProcessingException if order processing fails
+     * @see OrderMessage
+     * @see Order
      */
-    public Mono<Order> processOrder(OrderMessage orderMessage) {
+    public Mono<Order> processOrder(final OrderMessage orderMessage) {
         logger.info("Starting to process order: {}", orderMessage.orderId());
 
         return lockService.executeWithLock(
                 orderMessage.orderId(), () -> processOrderInternal(orderMessage));
     }
 
-    /** Internal order processing logic. */
-    private Mono<Order> processOrderInternal(OrderMessage orderMessage) {
+    /**
+     * Internal order processing logic without distributed locking.
+     *
+     * <p>This method handles the core order processing logic:
+     *
+     * <ul>
+     *   <li>Checks if the order already exists to prevent duplicates
+     *   <li>If order exists, returns the existing order
+     *   <li>If order doesn't exist, enriches and saves the order
+     * </ul>
+     *
+     * @param orderMessage the order message to process
+     * @return Mono containing the processed order
+     */
+    private Mono<Order> processOrderInternal(final OrderMessage orderMessage) {
         // Check if order already exists
         return orderRepository
                 .existsByOrderId(orderMessage.orderId())
@@ -87,8 +170,23 @@ public class OrderProcessingService {
                                         error.getMessage()));
     }
 
-    /** Enriches order data and saves to MongoDB. */
-    private Mono<Order> enrichAndSaveOrder(OrderMessage orderMessage) {
+    /**
+     * Enriches order data with customer and product information and saves to MongoDB.
+     *
+     * <p>This method performs the following operations:
+     *
+     * <ul>
+     *   <li>Fetches customer data from external API
+     *   <li>Fetches product data from external API (in parallel)
+     *   <li>Validates the enriched data
+     *   <li>Builds the complete order entity
+     *   <li>Saves the order to MongoDB
+     * </ul>
+     *
+     * @param orderMessage the order message to enrich and save
+     * @return Mono containing the saved order
+     */
+    private Mono<Order> enrichAndSaveOrder(final OrderMessage orderMessage) {
         logger.debug("Enriching order data for: {}", orderMessage.orderId());
 
         // Fetch customer and products in parallel
@@ -100,14 +198,14 @@ public class OrderProcessingService {
                         .map(OrderMessage.ProductInfo::productId)
                         .collect(Collectors.toList());
 
-        Flux<ProductResponse> productsFlux = productService.getProducts(productIds);
+        Flux<ProductResponse> productsFlux =
+                Flux.fromIterable(productIds).flatMap(productService::getProduct);
 
         return Mono.zip(customerMono, productsFlux.collectList())
                 .flatMap(
                         tuple -> {
                             CustomerResponse customer = tuple.getT1();
                             List<ProductResponse> products = tuple.getT2();
-
                             return validateAndBuildOrder(orderMessage, customer, products);
                         })
                 .flatMap(orderRepository::save);

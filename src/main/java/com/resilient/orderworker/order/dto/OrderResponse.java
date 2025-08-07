@@ -29,7 +29,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
  * @param totalAmount Calculated total amount for the order
  * @param processedAt Timestamp when the order was processed
  * @param status Current order processing status
- * @author Resilient Order Enricher Team
+ * @author Alejandro Velazco
+ * @version 1.0.0
  * @since 1.0.0
  */
 @Schema(

@@ -27,7 +27,6 @@ import com.resilient.orderworker.order.repository.OrderRepository;
 import com.resilient.orderworker.product.dto.ProductResponse;
 import com.resilient.orderworker.product.service.ProductService;
 
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -70,7 +69,7 @@ class OrderProcessingServiceTest {
 
         when(orderRepository.existsByOrderId("order-1")).thenReturn(Mono.just(false));
         when(customerService.getCustomer("customer-1")).thenReturn(Mono.just(customer));
-        when(productService.getProducts(List.of("product-1"))).thenReturn(Flux.just(product));
+        when(productService.getProduct("product-1")).thenReturn(Mono.just(product));
         when(orderRepository.save(any(Order.class))).thenReturn(Mono.just(savedOrder));
 
         // When & Then
@@ -123,7 +122,7 @@ class OrderProcessingServiceTest {
 
         when(orderRepository.existsByOrderId("order-1")).thenReturn(Mono.just(false));
         when(customerService.getCustomer("customer-1")).thenReturn(Mono.just(inactiveCustomer));
-        when(productService.getProducts(List.of("product-1"))).thenReturn(Flux.just(product));
+        when(productService.getProduct("product-1")).thenReturn(Mono.just(product));
 
         // When & Then
         StepVerifier.create(orderProcessingService.processOrder(orderMessage))
@@ -153,8 +152,7 @@ class OrderProcessingServiceTest {
 
         when(orderRepository.existsByOrderId("order-1")).thenReturn(Mono.just(false));
         when(customerService.getCustomer("customer-1")).thenReturn(Mono.just(customer));
-        when(productService.getProducts(List.of("product-1")))
-                .thenReturn(Flux.just(invalidProduct));
+        when(productService.getProduct("product-1")).thenReturn(Mono.just(invalidProduct));
 
         // When & Then
         StepVerifier.create(orderProcessingService.processOrder(orderMessage))

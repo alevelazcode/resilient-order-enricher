@@ -9,9 +9,6 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -52,7 +49,8 @@ import reactor.core.publisher.Mono;
  *   <li>Customer-specific order queries
  * </ul>
  *
- * @author Resilient Order Enricher Team
+ * @author Alejandro Velazco
+ * @version 1.0.0
  * @since 1.0.0
  */
 @RestController
@@ -319,16 +317,8 @@ Retrieves a paginated list of orders with optional filtering capabilities.
                 status,
                 customerId);
 
-        // Parse sort parameter
-        String[] sortParts = sort.split(",");
-        String sortField = sortParts[0];
-        Sort.Direction direction =
-                sortParts.length > 1 && "desc".equalsIgnoreCase(sortParts[1])
-                        ? Sort.Direction.DESC
-                        : Sort.Direction.ASC;
-
-        Pageable pageable =
-                PageRequest.of(page, Math.min(size, 100), Sort.by(direction, sortField));
+        // Parse sort parameter - for now use default sorting
+        // TODO: Implement proper sorting logic
 
         // Build query based on filters (simplified for demonstration)
         Mono<List<Order>> ordersQuery;

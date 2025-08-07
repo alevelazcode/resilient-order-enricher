@@ -35,7 +35,8 @@ import reactor.core.publisher.Mono;
  * <p>These tests validate that the actual API endpoints work exactly as documented in the OpenAPI
  * specification, ensuring consistency between documentation and implementation.
  *
- * @author Resilient Order Enricher Team
+ * @author Alejandro Velazco
+ * @version 1.0.0
  * @since 1.0.0
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
