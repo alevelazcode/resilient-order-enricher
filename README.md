@@ -4,6 +4,106 @@ A robust, scalable order processing system built with **Java Spring Boot** and
 **Go**, featuring Kafka message consumption, data enrichment, MongoDB storage,
 and Redis-based resilience patterns.
 
+## 📋 Table of Contents
+
+- [Resilient Order Enricher](#resilient-order-enricher)
+  - [📋 Table of Contents](#-table-of-contents)
+  - [🎯 Technical Challenge Statement](#-technical-challenge-statement)
+    - [**Technical Challenge: Java \& Go Worker for Order Processing with Data Enrichment and Resilience**](#technical-challenge-java--go-worker-for-order-processing-with-data-enrichment-and-resilience)
+      - [**Overview**](#overview)
+      - [**Detailed Requirements**](#detailed-requirements)
+      - [**Suggested Technologies and Tools**](#suggested-technologies-and-tools)
+      - [**Additional Considerations**](#additional-considerations)
+  - [🔧 Technical Prerequisites](#-technical-prerequisites)
+    - [**Required Software**](#required-software)
+    - [**Installation Guides by Operating System**](#installation-guides-by-operating-system)
+      - [**🍎 macOS**](#-macos)
+      - [**🐧 Linux (Ubuntu/Debian)**](#-linux-ubuntudebian)
+      - [**🪟 Windows**](#-windows)
+      - [**🐧 WSL (Windows Subsystem for Linux)**](#-wsl-windows-subsystem-for-linux)
+    - [**Verification Commands**](#verification-commands)
+    - [**IDE Setup (Optional but Recommended)**](#ide-setup-optional-but-recommended)
+      - [**VS Code Extensions**](#vs-code-extensions)
+      - [**IntelliJ IDEA**](#intellij-idea)
+      - [**Eclipse**](#eclipse)
+    - [**Troubleshooting**](#troubleshooting)
+      - [**Common Issues**](#common-issues)
+      - [**System Requirements**](#system-requirements)
+    - [**Next Steps**](#next-steps)
+    - [**✅ Quick Setup Checklist**](#-quick-setup-checklist)
+  - [✅ **Verification Guide: How to Check Each Objective**](#-verification-guide-how-to-check-each-objective)
+    - [**🔍 Quick Verification Commands**](#-quick-verification-commands)
+    - [**📋 Detailed Verification Steps**](#-detailed-verification-steps)
+      - [**1. ✅ Kafka Message Consumption**](#1--kafka-message-consumption)
+      - [**2. ✅ Data Enrichment via Go API**](#2--data-enrichment-via-go-api)
+      - [**3. ✅ Data Validation**](#3--data-validation)
+      - [**4. ✅ MongoDB Storage**](#4--mongodb-storage)
+      - [**5. ✅ Error Handling and Retry Logic**](#5--error-handling-and-retry-logic)
+      - [**6. ✅ Distributed Locking**](#6--distributed-locking)
+    - [**🧪 Automated Testing Verification**](#-automated-testing-verification)
+    - [**📊 Performance and Scalability Verification**](#-performance-and-scalability-verification)
+    - [**🔧 Code Quality Verification**](#-code-quality-verification)
+  - [🚀 Quick Start with Makefile](#-quick-start-with-makefile)
+    - [📋 Available Commands](#-available-commands)
+    - [🎯 Automatic Formatting on Save (Like Husky)](#-automatic-formatting-on-save-like-husky)
+      - [**Setup Automatic Formatting**](#setup-automatic-formatting)
+      - [**How It Works**](#how-it-works)
+      - [**Supported IDEs**](#supported-ides)
+      - [**Manual Formatting**](#manual-formatting)
+      - [**Quality Checks**](#quality-checks)
+    - [🎯 Most Used Commands](#-most-used-commands)
+    - [🚨 Quick Troubleshooting](#-quick-troubleshooting)
+    - [🎪 Demo Mode](#-demo-mode)
+    - [🔧 Development Workflow](#-development-workflow)
+    - [🏆 Code Quality Commands](#-code-quality-commands)
+    - [🐛 Troubleshooting](#-troubleshooting)
+  - [🏗️ Architecture](#️-architecture)
+    - [Feature-Based Architecture](#feature-based-architecture)
+    - [Java Spring Boot Structure](#java-spring-boot-structure)
+    - [Go Echo API Structure](#go-echo-api-structure)
+    - [Technology Stack](#technology-stack)
+  - [📊 System Overview](#-system-overview)
+    - [Data Flow](#data-flow)
+    - [Docker Services](#docker-services)
+      - [Infrastructure Services](#infrastructure-services)
+      - [Application Services](#application-services)
+    - [Environment Configuration](#environment-configuration)
+    - [Resilience Patterns](#resilience-patterns)
+  - [🧪 Testing Strategy](#-testing-strategy)
+    - [Java Testing Framework](#java-testing-framework)
+    - [Go Testing Framework](#go-testing-framework)
+  - [🏆 Code Quality \& Standards](#-code-quality--standards)
+    - [Java Code Quality Tools](#java-code-quality-tools)
+    - [Go Code Quality Tools](#go-code-quality-tools)
+    - [Pre-commit Hooks](#pre-commit-hooks)
+    - [Quality Commands](#quality-commands)
+  - [🐳 Docker \& Deployment](#-docker--deployment)
+    - [Local Development](#local-development)
+    - [Production](#production)
+  - [📈 Monitoring \& Observability](#-monitoring--observability)
+    - [Health Checks](#health-checks)
+    - [Metrics](#metrics)
+  - [🔍 Troubleshooting](#-troubleshooting-1)
+    - [Common Issues](#common-issues-1)
+    - [Logs](#logs)
+  - [📚 API Documentation](#-api-documentation)
+    - [Interactive Swagger UI](#interactive-swagger-ui)
+    - [Java Spring Boot API Endpoints](#java-spring-boot-api-endpoints)
+    - [Go Enrichment API Endpoints](#go-enrichment-api-endpoints)
+    - [API Response Examples](#api-response-examples)
+    - [Swagger Features](#swagger-features)
+    - [Testing with Swagger UI](#testing-with-swagger-ui)
+  - [🎯 Performance \& Scalability](#-performance--scalability)
+    - [Optimizations](#optimizations)
+    - [Scaling](#scaling)
+  - [🤝 Contributing](#-contributing)
+    - [Development Setup](#development-setup)
+    - [Code Standards](#code-standards)
+  - [📄 License](#-license)
+  - [🙏 Acknowledgments](#-acknowledgments)
+
+---
+
 ## 🎯 Technical Challenge Statement
 
 ### **Technical Challenge: Java & Go Worker for Order Processing with Data Enrichment and Resilience**
@@ -85,6 +185,309 @@ must:
 - Testing: Include unit tests.
 - Performance: Optimize with caching, indexes, and best practices.
 - Scalability: Plan for growing order volumes.
+
+## 🔧 Technical Prerequisites
+
+Before running this project, ensure you have the following tools installed on
+your system:
+
+### **Required Software**
+
+| Tool               | Version | Purpose                       |
+| ------------------ | ------- | ----------------------------- |
+| **Java**           | 21+     | Java runtime and development  |
+| **Go**             | 1.21+   | Go runtime and development    |
+| **Docker**         | 24.0+   | Containerization              |
+| **Docker Compose** | 2.20+   | Multi-container orchestration |
+| **Git**            | 2.30+   | Version control               |
+| **Make**           | 4.0+    | Build automation              |
+
+### **Installation Guides by Operating System**
+
+#### **🍎 macOS**
+
+**Using Homebrew (Recommended):**
+
+```bash
+# Install Homebrew if not already installed
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install Java 21
+brew install openjdk@21
+echo 'export PATH="/opt/homebrew/opt/openjdk@21/bin:$PATH"' >> ~/.zshrc
+echo 'export JAVA_HOME="/opt/homebrew/opt/openjdk@21"' >> ~/.zshrc
+source ~/.zshrc
+
+# Install Go
+brew install go
+
+# Install Docker Desktop
+brew install --cask docker
+
+# Install Git (usually pre-installed)
+brew install git
+
+# Install Make (usually pre-installed)
+brew install make
+```
+
+#### **🐧 Linux (Ubuntu/Debian)**
+
+**Using Package Manager:**
+
+```bash
+# Update package list
+sudo apt update
+
+# Install Java 21
+sudo apt install openjdk-21-jdk
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+echo 'export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64' >> ~/.bashrc
+
+# Install Go
+wget https://go.dev/dl/go1.21.0.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.21.0.linux-amd64.tar.gz
+echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
+source ~/.bashrc
+
+# Install Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+newgrp docker
+
+# Install Docker Compose
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+
+# Install Git
+sudo apt install git
+
+# Install Make
+sudo apt install make
+```
+
+#### **🪟 Windows**
+
+**Using Chocolatey (Recommended):**
+
+```powershell
+# Install Chocolatey if not already installed
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+
+# Install Java 21
+choco install openjdk21
+
+# Install Go
+choco install golang
+
+# Install Docker Desktop
+choco install docker-desktop
+
+# Install Git
+choco install git
+
+# Install Make (via Chocolatey)
+choco install make
+```
+
+**Using Scoop:**
+
+```powershell
+# Install Scoop if not already installed
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+irm get.scoop.sh | iex
+
+# Install Java 21
+scoop install openjdk21
+
+# Install Go
+scoop install go
+
+# Install Git
+scoop install git
+
+# Install Make
+scoop install make
+```
+
+**Manual Installation:**
+
+1. **Java 21**: Download from
+   [Oracle](https://www.oracle.com/java/technologies/downloads/) or
+   [OpenJDK](https://adoptium.net/)
+2. **Go**: Download from [golang.org](https://golang.org/dl/)
+3. **Docker Desktop**: Download from
+   [docker.com](https://www.docker.com/products/docker-desktop/)
+4. **Git**: Download from [git-scm.com](https://git-scm.com/download/win)
+
+#### **🐧 WSL (Windows Subsystem for Linux)**
+
+**Using Ubuntu on WSL:**
+
+```bash
+# Update WSL
+wsl --update
+
+# Install Ubuntu if not already installed
+wsl --install -d Ubuntu
+
+# Follow Linux installation guide above
+# (Same as Ubuntu/Debian instructions)
+```
+
+### **Verification Commands**
+
+After installation, verify all tools are working:
+
+```bash
+# Verify Java
+java --version
+javac --version
+echo $JAVA_HOME
+
+# Verify Go
+go version
+go env GOPATH
+
+# Verify Docker
+docker --version
+docker-compose --version
+docker run hello-world
+
+# Verify Git
+git --version
+
+# Verify Make
+make --version
+```
+
+### **IDE Setup (Optional but Recommended)**
+
+#### **VS Code Extensions**
+
+```bash
+# Install recommended extensions
+code --install-extension vscjava.vscode-java-pack
+code --install-extension redhat.java
+code --install-extension vscjava.vscode-gradle
+code --install-extension golang.go
+code --install-extension ms-vscode.vscode-json
+code --install-extension redhat.vscode-yaml
+code --install-extension esbenp.prettier-vscode
+code --install-extension ms-vscode.vscode-docker
+```
+
+#### **IntelliJ IDEA**
+
+1. Install **IntelliJ IDEA Community** (free) or **Ultimate**
+2. Install plugins:
+   - **Java** (built-in)
+   - **Go** (built-in)
+   - **Docker** (built-in)
+   - **Gradle** (built-in)
+
+#### **Eclipse**
+
+1. Download **Eclipse IDE for Java Developers**
+2. Install plugins:
+   - **GoClipse** for Go support
+   - **Docker Tooling**
+
+### **Troubleshooting**
+
+#### **Common Issues**
+
+**Java Issues:**
+
+```bash
+# If Java not found
+export JAVA_HOME=/path/to/your/java
+export PATH=$JAVA_HOME/bin:$PATH
+```
+
+**Go Issues:**
+
+```bash
+# If Go not found
+export GOPATH=$HOME/go
+export PATH=$PATH:$GOPATH/bin
+```
+
+**Docker Issues:**
+
+```bash
+# If Docker permission denied
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+**Make Issues:**
+
+```bash
+# On Windows, ensure you're using WSL or Git Bash
+# Make is not natively available on Windows
+```
+
+#### **System Requirements**
+
+- **RAM**: Minimum 8GB, Recommended 16GB+
+- **Storage**: Minimum 10GB free space
+- **CPU**: Multi-core processor recommended
+- **OS**: macOS 10.15+, Ubuntu 20.04+, Windows 10/11, or WSL2
+
+### **Next Steps**
+
+Once all prerequisites are installed:
+
+1. **Clone the repository**:
+
+   ```bash
+   git clone https://github.com/yourusername/resilient-order-enricher.git
+   cd resilient-order-enricher
+   ```
+
+2. **Setup automatic formatting**:
+
+   ```bash
+   make setup-formatting
+   ```
+
+3. **Start the services**:
+
+   ```bash
+   make start
+   ```
+
+4. **Run tests**:
+
+   ```bash
+   make test
+   ```
+
+### **✅ Quick Setup Checklist**
+
+Before running the project, verify you have:
+
+- [ ] **Java 21+** installed (`java --version`)
+- [ ] **Go 1.21+** installed (`go version`)
+- [ ] **Docker** running (`docker --version`)
+- [ ] **Docker Compose** available (`docker-compose --version`)
+- [ ] **Git** installed (`git --version`)
+- [ ] **Make** available (`make --version`)
+- [ ] **8GB+ RAM** available
+- [ ] **10GB+ free storage**
+- [ ] **Ports 8081, 8090, 9092, 27017, 6380** available
+
+**Quick verification command:**
+
+```bash
+# Run this to check all prerequisites
+make check-prerequisites
+
+# Or manually check each tool
+java --version && go version && docker --version && docker-compose --version && git --version && make --version && echo "✅ All prerequisites met!"
+```
 
 ---
 
@@ -365,6 +768,12 @@ make lint
 
 ## 🚀 Quick Start with Makefile
 
+**⚠️ Prerequisites Required**: Before starting, ensure you have all
+[Technical Prerequisites](#-technical-prerequisites) installed.
+
+**🔍 Quick Check**: Run `make check-prerequisites` to verify all tools are
+installed correctly.
+
 The project includes a comprehensive **Makefile** with developer-friendly
 shortcuts for all common tasks:
 
@@ -474,23 +883,38 @@ make check-redis    # Check Redis data
 # API Documentation
 make swagger        # Open Swagger UI (http://localhost:8081/swagger-ui.html)
 make api-docs       # View OpenAPI JSON (http://localhost:8081/v3/api-docs)
+```
 
-# Utilities
-make kafka-setup    # Setup Kafka topics
-make send-test-message  # Send test message to Kafka
-make demo           # Start demo environment with test message
-make reset          # Reset everything and start fresh
+### 🚨 Quick Troubleshooting
 
-# Shell Access
-make shell-java     # Open shell in Java container
-make shell-go       # Open shell in Go container
-make shell-mongo    # Open MongoDB shell
+**If services won't start:**
 
-# Cleaning
-make clean          # Clean everything
-make clean-java     # Clean Java project
-make clean-go       # Clean Go project
-make clean-docker   # Clean Docker containers
+```bash
+# Check if Docker is running
+docker --version
+docker-compose --version
+
+# Check if ports are available
+lsof -i :8081  # Java Worker
+lsof -i :8090  # Go API
+lsof -i :9092  # Kafka
+lsof -i :27017 # MongoDB
+lsof -i :6380  # Redis
+```
+
+**If tests fail:**
+
+```bash
+# Check Java version
+java --version  # Should be 21+
+
+# Check Go version
+go version      # Should be 1.21+
+
+# Clean and rebuild
+make clean
+make build
+make test
 ```
 
 ### 🎪 Demo Mode

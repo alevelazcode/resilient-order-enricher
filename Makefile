@@ -241,6 +241,11 @@ production: ## Start production environment
 # UTILITIES
 # =============================================================================
 
+.PHONY: check-prerequisites
+check-prerequisites: ## Check if all prerequisites are installed
+	@echo "$(BLUE)Checking prerequisites...$(NC)"
+	./scripts/check-prerequisites.sh
+
 .PHONY: setup-formatting
 setup-formatting: ## Setup automatic formatting on save (IDE + Git hooks)
 	@echo "$(BLUE)Setting up automatic formatting on save...$(NC)"
