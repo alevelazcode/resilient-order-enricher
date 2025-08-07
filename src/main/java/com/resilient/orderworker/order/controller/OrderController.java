@@ -35,6 +35,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import reactor.core.publisher.Mono;
+import com.resilient.orderworker.common.exception.OrderNotFoundException;
 
 /**
  * REST Controller for order management operations.
@@ -167,7 +168,7 @@ The order includes enriched customer information (name, status) and product deta
                 .findByOrderId(orderId)
                 .map(OrderResponse::fromEntity)
                 .map(ResponseEntity::ok)
-                .defaultIfEmpty(ResponseEntity.notFound().build())
+                .switchIfEmpty(Mono.error(new OrderNotFoundException("Order with ID '" + orderId + "' was not found")))
                 .doOnSuccess(
                         response -> logger.info("Order retrieval completed for ID: {}", orderId))
                 .doOnError(

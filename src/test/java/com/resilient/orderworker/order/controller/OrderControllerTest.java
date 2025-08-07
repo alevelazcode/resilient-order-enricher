@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -238,7 +239,7 @@ class OrderControllerTest {
         order.setCustomerStatus("ACTIVE");
         order.setStatus(Order.OrderStatus.PROCESSED);
         order.setTotalAmount(1299.99);
-        order.setProcessedAt(LocalDateTime.now());
+        order.setProcessedAt(LocalDateTime.now(ZoneId.systemDefault()));
 
         Order.OrderProduct product = new Order.OrderProduct();
         product.setProductId("product-001");
