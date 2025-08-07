@@ -18,9 +18,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-/**
- * Redis implementation of DistributedLockService using Redisson.
- */
+/** Redis implementation of DistributedLockService using Redisson. */
 @Service
 @ConditionalOnProperty(name = "spring.redis.enabled", havingValue = "true", matchIfMissing = true)
 public class RedisDistributedLockService implements DistributedLockService {
@@ -42,7 +40,8 @@ public class RedisDistributedLockService implements DistributedLockService {
     }
 
     @Override
-    public <T> Mono<T> executeWithLock(String orderId, Supplier<Mono<T>> task, long waitTime, long leaseTime) {
+    public <T> Mono<T> executeWithLock(
+            String orderId, Supplier<Mono<T>> task, long waitTime, long leaseTime) {
         String lockKey = LOCK_PREFIX + orderId;
 
         return Mono.fromCallable(
@@ -87,7 +86,8 @@ public class RedisDistributedLockService implements DistributedLockService {
                                                         }
                                                     } catch (Exception e) {
                                                         logger.error(
-                                                                "Error releasing lock for order: {}",
+                                                                "Error releasing lock for order:"
+                                                                        + " {}",
                                                                 orderId,
                                                                 e);
                                                     }

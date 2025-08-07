@@ -15,8 +15,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 /**
- * Mock implementation of DistributedLockService for when Redis is not available.
- * This service simply executes the task without any locking mechanism.
+ * Mock implementation of DistributedLockService for when Redis is not available. This service
+ * simply executes the task without any locking mechanism.
  */
 @Service
 @ConditionalOnProperty(name = "spring.redis.enabled", havingValue = "false")
@@ -31,9 +31,13 @@ public class MockDistributedLockService implements DistributedLockService {
     }
 
     @Override
-    public <T> Mono<T> executeWithLock(String orderId, Supplier<Mono<T>> task, long waitTime, long leaseTime) {
-        logger.debug("Mock lock service: executing task for order: {} (waitTime: {}, leaseTime: {})", 
-                    orderId, waitTime, leaseTime);
+    public <T> Mono<T> executeWithLock(
+            String orderId, Supplier<Mono<T>> task, long waitTime, long leaseTime) {
+        logger.debug(
+                "Mock lock service: executing task for order: {} (waitTime: {}, leaseTime: {})",
+                orderId,
+                waitTime,
+                leaseTime);
         return task.get();
     }
 

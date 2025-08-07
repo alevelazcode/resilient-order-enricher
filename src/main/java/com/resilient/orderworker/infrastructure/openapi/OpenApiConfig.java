@@ -11,9 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 
-/**
- * OpenAPI 3.0 configuration for the Resilient Order Enricher API.
- */
+/** OpenAPI 3.0 configuration for the Resilient Order Enricher API. */
 @Configuration
 public class OpenApiConfig {
 
@@ -25,9 +23,12 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI orderWorkerOpenAPI() {
         return new OpenAPI()
-                .info(new Info()
-                        .title("Resilient Order Enricher API")
-                        .description("Order processing system with data enrichment and resilience patterns")
-                        .version("1.0.0"));
+                .info(
+                        new Info()
+                                .title("Resilient Order Enricher API")
+                                .description(
+                                        "Order processing system with data enrichment and"
+                                                + " resilience patterns")
+                                .version("1.0.0"));
     }
 }
