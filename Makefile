@@ -537,3 +537,30 @@ b: build ## Alias for build
 
 .PHONY: l
 l: logs ## Alias for logs
+
+# =============================================================================
+# VERIFICATION
+# =============================================================================
+
+.PHONY: verify
+verify: ## Full verification: start services, run unit/integration tests, and quality checks
+	@echo "$(BLUE)Running full project verification...$(NC)"
+	make start
+	@echo "$(YELLOW)Running Java tests...$(NC)" && cd $(JAVA_PROJECT) && ./gradlew clean test
+	@echo "$(YELLOW)Running Java quality (Checkstyle + Spotless)...$(NC)" && cd $(JAVA_PROJECT) && ./gradlew spotlessCheck checkstyleMain checkstyleTest
+	@echo "$(YELLOW)Running Go tests...$(NC)" && cd $(GO_PROJECT) && go test -v ./...
+	@echo "$(YELLOW)Sending a smoke order through Kafka...$(NC)" && ./scripts/send-test-message.sh test-$(shell date +%s)
+	@sleep 3
+	@echo "$(YELLOW)Checking MongoDB for persisted orders...$(NC)"
+	@make check-mongo
+	@echo "$(GREEN)Verification completed. All objectives validated.$(NC)"
+
+.PHONY: verify-smoke
+verify-smoke: ## Quick smoke: run services, send a message, and check health and Mongo
+	@echo "$(BLUE)Running smoke verification...$(NC)"
+	make start
+	@make health
+	@./scripts/send-test-message.sh smoke-$(shell date +%s)
+	@sleep 3
+	@make check-mongo
+	@echo "$(GREEN)Smoke verification completed!$(NC)"

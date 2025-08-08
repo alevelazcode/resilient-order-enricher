@@ -500,10 +500,10 @@ challenge requirement is met.
 
 ```bash
 # 1. Run complete verification (recommended)
-make ci                    # Runs: format + lint + test + build
+make verify               # Start services + run tests + quality + smoke through Kafka
 
-# 2. Start services and run demo
-make demo                  # Start services + setup kafka + send test message
+# 2. Quick smoke verification
+make verify-smoke         # Start services + health + send message + check Mongo
 
 # 3. Verify everything works
 make health               # Check all services are healthy

@@ -90,8 +90,8 @@ spotless {
     java {
         target("src/**/*.java")
 
-        // Use Google Java Format
-        googleJavaFormat("1.22.0").aosp().reflowLongStrings()
+        // Use Google Java Format (avoid reflowLongStrings due to guava classloader issues)
+        googleJavaFormat("1.22.0").aosp()
 
         // Import order
         importOrder("java", "javax", "org", "com", "")

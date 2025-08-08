@@ -286,11 +286,11 @@ class OpenApiIntegrationTest {
                 .exists()
                 .jsonPath(
                         "$.paths./api/v1/orders/{orderId}.get.responses.200.content.application/json.examples['Successful"
-                            + " Order Response']")
+                                + " Order Response']")
                 .exists()
                 .jsonPath(
                         "$.paths./api/v1/orders/{orderId}.get.responses.200.content.application/json.examples['Successful"
-                            + " Order Response'].summary")
+                                + " Order Response'].summary")
                 .isEqualTo("Complete enriched order");
     }
 
