@@ -25,7 +25,7 @@ import reactor.core.publisher.Mono;
  * @version 1.0.0
  * @since 1.0.0
  */
-@Service
+@Service("mockFailedMessageServiceComponent")
 @ConditionalOnProperty(name = "spring.redis.enabled", havingValue = "false")
 public class MockFailedMessageService {
 

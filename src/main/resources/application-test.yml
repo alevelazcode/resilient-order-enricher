@@ -10,8 +10,6 @@ spring:
       - org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration
       - org.springframework.boot.actuate.autoconfigure.data.redis.RedisReactiveHealthContributorAutoConfiguration
       - org.springframework.boot.actuate.autoconfigure.data.redis.RedisHealthContributorAutoConfiguration
-      - org.redisson.spring.starter.RedissonAutoConfiguration
-      - org.redisson.spring.starter.RedissonAutoConfigurationV2
       - org.springframework.boot.autoconfigure.cache.CacheAutoConfiguration
       - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
 

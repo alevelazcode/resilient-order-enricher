@@ -31,9 +31,9 @@ public class TestConfig {
      *
      * @return mock FailedMessageService
      */
-    @Bean
+    @Bean(name = "mockFailedMessageService")
     @Primary
-    public FailedMessageService mockFailedMessageService() {
+    public FailedMessageService mockFailedMessageServiceBean() {
         final FailedMessageService mock = Mockito.mock(FailedMessageService.class);
 
         // Configure mock behavior
