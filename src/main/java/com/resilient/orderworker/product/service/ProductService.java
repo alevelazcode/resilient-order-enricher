@@ -32,7 +32,7 @@ import reactor.core.publisher.Mono;
 @Service
 public class ProductService {
 
-    private static final Logger logger = LoggerFactory.getLogger(ProductService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProductService.class);
     private static final String CIRCUIT_BREAKER_NAME = "productService";
     private static final String RETRY_NAME = "productService";
 
@@ -52,7 +52,7 @@ public class ProductService {
     @Retry(name = RETRY_NAME)
     @Cacheable(value = "products", key = "#productId")
     public Mono<ProductResponse> getProduct(String productId) {
-        logger.debug("Fetching product details for ID: {}", productId);
+        LOGGER.debug("Fetching product details for ID: {}", productId);
 
         return webClient
                 .get()
@@ -60,10 +60,10 @@ public class ProductService {
                 .retrieve()
                 .bodyToMono(ProductResponse.class)
                 .doOnSuccess(
-                        response -> logger.debug("Successfully fetched product: {}", productId))
+                        response -> LOGGER.debug("Successfully fetched product: {}", productId))
                 .doOnError(
                         error ->
-                                logger.error(
+                                LOGGER.error(
                                         "Error fetching product {}: {}",
                                         productId,
                                         error.getMessage()))
@@ -77,12 +77,12 @@ public class ProductService {
      * @return Flux containing product responses
      */
     public Flux<ProductResponse> getProducts(List<String> productIds) {
-        logger.debug("Fetching {} products", productIds.size());
+        LOGGER.debug("Fetching {} products", productIds.size());
 
         return Flux.fromIterable(productIds)
                 .flatMap(this::getProduct)
                 .doOnComplete(
-                        () -> logger.debug("Completed fetching {} products", productIds.size()));
+                        () -> LOGGER.debug("Completed fetching {} products", productIds.size()));
     }
 
     /**
@@ -97,7 +97,7 @@ public class ProductService {
 
     /** Fallback method for circuit breaker. */
     public Mono<ProductResponse> fallbackGetProduct(String productId, Exception ex) {
-        logger.warn("Fallback triggered for product {}: {}", productId, ex.getMessage());
+        LOGGER.warn("Fallback triggered for product {}: {}", productId, ex.getMessage());
         return Mono.error(new ExternalApiException("Product service temporarily unavailable", ex));
     }
 

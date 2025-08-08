@@ -26,11 +26,11 @@ import reactor.core.publisher.Mono;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(OrderNotFoundException.class)
     public Mono<ResponseEntity<ErrorResponse>> handleOrderNotFound(OrderNotFoundException ex) {
-        logger.error("Order not found: {}", ex.getMessage());
+        LOGGER.error("Order not found: {}", ex.getMessage());
         ErrorResponse error =
                 new ErrorResponse(
                         "ORDER_NOT_FOUND",
@@ -42,7 +42,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(CustomerNotFoundException.class)
     public Mono<ResponseEntity<ErrorResponse>> handleCustomerNotFound(
             CustomerNotFoundException ex) {
-        logger.error("Customer not found: {}", ex.getMessage());
+        LOGGER.error("Customer not found: {}", ex.getMessage());
         ErrorResponse error =
                 new ErrorResponse(
                         "CUSTOMER_NOT_FOUND",
@@ -53,7 +53,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ProductNotFoundException.class)
     public Mono<ResponseEntity<ErrorResponse>> handleProductNotFound(ProductNotFoundException ex) {
-        logger.error("Product not found: {}", ex.getMessage());
+        LOGGER.error("Product not found: {}", ex.getMessage());
         ErrorResponse error =
                 new ErrorResponse(
                         "PRODUCT_NOT_FOUND",
@@ -64,7 +64,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(OrderProcessingException.class)
     public Mono<ResponseEntity<ErrorResponse>> handleOrderProcessing(OrderProcessingException ex) {
-        logger.error("Order processing error: {}", ex.getMessage());
+        LOGGER.error("Order processing error: {}", ex.getMessage());
         ErrorResponse error =
                 new ErrorResponse(
                         "ORDER_PROCESSING_ERROR",
@@ -75,7 +75,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ExternalApiException.class)
     public Mono<ResponseEntity<ErrorResponse>> handleExternalApi(ExternalApiException ex) {
-        logger.error("External API error: {}", ex.getMessage());
+        LOGGER.error("External API error: {}", ex.getMessage());
         ErrorResponse error =
                 new ErrorResponse(
                         "EXTERNAL_API_ERROR",
@@ -86,7 +86,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(WebExchangeBindException.class)
     public Mono<ResponseEntity<ErrorResponse>> handleValidation(WebExchangeBindException ex) {
-        logger.error("Validation error: {}", ex.getMessage());
+        LOGGER.error("Validation error: {}", ex.getMessage());
 
         List<String> errors =
                 ex.getBindingResult().getFieldErrors().stream()
@@ -103,7 +103,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public Mono<ResponseEntity<ErrorResponse>> handleGeneral(Exception ex) {
-        logger.error("Unexpected error: {}", ex.getMessage(), ex);
+        LOGGER.error("Unexpected error: {}", ex.getMessage(), ex);
         ErrorResponse error =
                 new ErrorResponse(
                         "INTERNAL_ERROR",

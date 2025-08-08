@@ -29,7 +29,7 @@ import reactor.core.publisher.Mono;
 @ConditionalOnProperty(name = "kafka.enabled", havingValue = "true", matchIfMissing = true)
 public class OrderConsumer {
 
-    private static final Logger logger = LoggerFactory.getLogger(OrderConsumer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(OrderConsumer.class);
 
     private final OrderProcessingService orderProcessingService;
     private final FailedMessageService failedMessageService;
@@ -53,12 +53,12 @@ public class OrderConsumer {
             topics = "${kafka.topics.orders:orders}",
             groupId = "${kafka.consumer.group-id:order-worker-group}")
     public void consumeOrder(
-            @Payload OrderMessage orderMessage,
-            @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
-            @Header(KafkaHeaders.OFFSET) long offset,
-            Acknowledgment acknowledgment) {
+            @Payload final OrderMessage orderMessage,
+            @Header(KafkaHeaders.RECEIVED_PARTITION) final int partition,
+            @Header(KafkaHeaders.OFFSET) final long offset,
+            final Acknowledgment acknowledgment) {
 
-        logger.info(
+        LOGGER.info(
                 "Received order message: {} from partition: {}, offset: {}",
                 orderMessage.orderId(),
                 partition,
@@ -68,12 +68,12 @@ public class OrderConsumer {
                 .processOrder(orderMessage)
                 .doOnSuccess(
                         order -> {
-                            logger.info("Successfully processed order: {}", order.getOrderId());
+                            LOGGER.info("Successfully processed order: {}", order.getOrderId());
                             acknowledgment.acknowledge();
                         })
                 .doOnError(
                         error -> {
-                            logger.error(
+                            LOGGER.error(
                                     "Error processing order {}: {}",
                                     orderMessage.orderId(),
                                     error.getMessage(),
@@ -84,13 +84,13 @@ public class OrderConsumer {
                                     .storeFailedMessage(orderMessage, error)
                                     .doOnSuccess(
                                             v ->
-                                                    logger.info(
+                                                    LOGGER.info(
                                                             "Stored failed message for order {} in"
                                                                     + " Redis for retry",
                                                             orderMessage.orderId()))
                                     .doOnError(
                                             storeError ->
-                                                    logger.error(
+                                                    LOGGER.error(
                                                             "Failed to store message in Redis: {}",
                                                             storeError.getMessage()))
                                     .subscribe();
@@ -102,7 +102,7 @@ public class OrderConsumer {
                 .onErrorResume(
                         error -> {
                             // Handle any unexpected errors
-                            logger.error(
+                            LOGGER.error(
                                     "Unexpected error processing order {}: {}",
                                     orderMessage.orderId(),
                                     error.getMessage(),

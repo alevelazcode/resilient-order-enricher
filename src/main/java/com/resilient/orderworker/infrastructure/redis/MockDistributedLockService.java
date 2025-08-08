@@ -22,18 +22,18 @@ import reactor.core.publisher.Mono;
 @ConditionalOnProperty(name = "spring.redis.enabled", havingValue = "false")
 public class MockDistributedLockService implements DistributedLockService {
 
-    private static final Logger logger = LoggerFactory.getLogger(MockDistributedLockService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MockDistributedLockService.class);
 
     @Override
     public <T> Mono<T> executeWithLock(String orderId, Supplier<Mono<T>> task) {
-        logger.debug("Mock lock service: executing task for order: {}", orderId);
+        LOGGER.debug("Mock lock service: executing task for order: {}", orderId);
         return task.get();
     }
 
     @Override
     public <T> Mono<T> executeWithLock(
             String orderId, Supplier<Mono<T>> task, long waitTime, long leaseTime) {
-        logger.debug(
+        LOGGER.debug(
                 "Mock lock service: executing task for order: {} (waitTime: {}, leaseTime: {})",
                 orderId,
                 waitTime,
@@ -43,7 +43,7 @@ public class MockDistributedLockService implements DistributedLockService {
 
     @Override
     public Mono<Boolean> isOrderLocked(String orderId) {
-        logger.debug("Mock lock service: checking if order is locked: {}", orderId);
+        LOGGER.debug("Mock lock service: checking if order is locked: {}", orderId);
         return Mono.just(false);
     }
 }

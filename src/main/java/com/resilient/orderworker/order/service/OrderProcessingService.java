@@ -76,7 +76,7 @@ import reactor.core.publisher.Mono;
 @Service
 public class OrderProcessingService {
 
-    private static final Logger logger = LoggerFactory.getLogger(OrderProcessingService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(OrderProcessingService.class);
 
     private final OrderRepository orderRepository;
     private final CustomerService customerService;
@@ -126,7 +126,7 @@ public class OrderProcessingService {
      * @see Order
      */
     public Mono<Order> processOrder(final OrderMessage orderMessage) {
-        logger.info("Starting to process order: {}", orderMessage.orderId());
+        LOGGER.info("Starting to process order: {}", orderMessage.orderId());
 
         return lockService.executeWithLock(
                 orderMessage.orderId(), () -> processOrderInternal(orderMessage));
@@ -153,18 +153,18 @@ public class OrderProcessingService {
                 .flatMap(
                         exists -> {
                             if (exists) {
-                                logger.warn("Order already processed: {}", orderMessage.orderId());
+                                LOGGER.warn("Order already processed: {}", orderMessage.orderId());
                                 return orderRepository.findByOrderId(orderMessage.orderId());
                             }
                             return enrichAndSaveOrder(orderMessage);
                         })
                 .doOnSuccess(
                         order ->
-                                logger.info(
+                                LOGGER.info(
                                         "Successfully processed order: {}", orderMessage.orderId()))
                 .doOnError(
                         error ->
-                                logger.error(
+                                LOGGER.error(
                                         "Error processing order {}: {}",
                                         orderMessage.orderId(),
                                         error.getMessage()));
@@ -187,7 +187,7 @@ public class OrderProcessingService {
      * @return Mono containing the saved order
      */
     private Mono<Order> enrichAndSaveOrder(final OrderMessage orderMessage) {
-        logger.debug("Enriching order data for: {}", orderMessage.orderId());
+        LOGGER.debug("Enriching order data for: {}", orderMessage.orderId());
 
         // Fetch customer and products in parallel
         Mono<CustomerResponse> customerMono =
@@ -276,7 +276,7 @@ public class OrderProcessingService {
                         totalAmount,
                         Order.OrderStatus.PROCESSED);
 
-        logger.debug(
+        LOGGER.debug(
                 "Built order with total amount: {} for order: {}",
                 totalAmount,
                 orderMessage.orderId());

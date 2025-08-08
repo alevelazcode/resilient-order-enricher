@@ -23,7 +23,7 @@ import reactor.core.scheduler.Schedulers;
 @ConditionalOnProperty(name = "spring.redis.enabled", havingValue = "true", matchIfMissing = true)
 public class RedisDistributedLockService implements DistributedLockService {
 
-    private static final Logger logger = LoggerFactory.getLogger(RedisDistributedLockService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RedisDistributedLockService.class);
     private static final String LOCK_PREFIX = "order-lock:";
     private static final long DEFAULT_WAIT_TIME = 10L; // seconds
     private static final long DEFAULT_LEASE_TIME = 30L; // seconds
@@ -47,13 +47,13 @@ public class RedisDistributedLockService implements DistributedLockService {
         return Mono.fromCallable(
                         () -> {
                             RLock lock = redissonClient.getLock(lockKey);
-                            logger.debug("Attempting to acquire lock for order: {}", orderId);
+                            LOGGER.debug("Attempting to acquire lock for order: {}", orderId);
 
                             try {
                                 boolean acquired =
                                         lock.tryLock(waitTime, leaseTime, TimeUnit.SECONDS);
                                 if (!acquired) {
-                                    logger.warn(
+                                    LOGGER.warn(
                                             "Failed to acquire lock for order: {} within {}"
                                                     + " seconds",
                                             orderId,
@@ -62,7 +62,7 @@ public class RedisDistributedLockService implements DistributedLockService {
                                             "Could not acquire lock for order: " + orderId);
                                 }
 
-                                logger.debug("Successfully acquired lock for order: {}", orderId);
+                                LOGGER.debug("Successfully acquired lock for order: {}", orderId);
                                 return lock;
                             } catch (InterruptedException e) {
                                 Thread.currentThread().interrupt();
@@ -80,12 +80,12 @@ public class RedisDistributedLockService implements DistributedLockService {
                                                     try {
                                                         if (lock.isHeldByCurrentThread()) {
                                                             lock.unlock();
-                                                            logger.debug(
+                                                            LOGGER.debug(
                                                                     "Released lock for order: {}",
                                                                     orderId);
                                                         }
                                                     } catch (Exception e) {
-                                                        logger.error(
+                                                        LOGGER.error(
                                                                 "Error releasing lock for order:"
                                                                         + " {}",
                                                                 orderId,

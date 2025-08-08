@@ -29,7 +29,7 @@ import reactor.core.publisher.Mono;
 @Service
 public class CustomerService {
 
-    private static final Logger logger = LoggerFactory.getLogger(CustomerService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(CustomerService.class);
     private static final String CIRCUIT_BREAKER_NAME = "customerService";
     private static final String RETRY_NAME = "customerService";
 
@@ -49,7 +49,7 @@ public class CustomerService {
     @Retry(name = RETRY_NAME)
     @Cacheable(value = "customers", key = "#customerId")
     public Mono<CustomerResponse> getCustomer(String customerId) {
-        logger.debug("Fetching customer details for ID: {}", customerId);
+        LOGGER.debug("Fetching customer details for ID: {}", customerId);
 
         return webClient
                 .get()
@@ -57,10 +57,10 @@ public class CustomerService {
                 .retrieve()
                 .bodyToMono(CustomerResponse.class)
                 .doOnSuccess(
-                        response -> logger.debug("Successfully fetched customer: {}", customerId))
+                        response -> LOGGER.debug("Successfully fetched customer: {}", customerId))
                 .doOnError(
                         error ->
-                                logger.error(
+                                LOGGER.error(
                                         "Error fetching customer {}: {}",
                                         customerId,
                                         error.getMessage()))
@@ -79,7 +79,7 @@ public class CustomerService {
 
     /** Fallback method for circuit breaker. */
     public Mono<CustomerResponse> fallbackGetCustomer(String customerId, Exception ex) {
-        logger.warn("Fallback triggered for customer {}: {}", customerId, ex.getMessage());
+        LOGGER.warn("Fallback triggered for customer {}: {}", customerId, ex.getMessage());
         return Mono.error(new ExternalApiException("Customer service temporarily unavailable", ex));
     }
 
