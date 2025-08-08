@@ -452,10 +452,73 @@ logs-all: ## Show all logs with timestamps
 # =============================================================================
 
 .PHONY: docs
-docs: ## Generate documentation
-	@echo "$(BLUE)Generating documentation...$(NC)"
+docs: docs-java docs-go ## Generate all documentation (Java + Go)
+
+.PHONY: docs-java
+docs-java: ## Generate Java documentation (Javadoc)
+	@echo "$(BLUE)Generating Java documentation (Javadoc)...$(NC)"
 	cd $(JAVA_PROJECT) && ./gradlew javadoc
-	@echo "$(GREEN)Documentation generated!$(NC)"
+	@echo "$(GREEN)Java documentation generated at: build/docs/javadoc/index.html$(NC)"
+
+.PHONY: docs-go
+docs-go: ## Generate Go documentation (Godoc)
+	@echo "$(BLUE)Generating Go documentation (Godoc)...$(NC)"
+	@if command -v godoc >/dev/null 2>&1; then \
+		echo "$(YELLOW)Godoc is installed. Starting godoc server...$(NC)"; \
+		echo "$(BLUE)Godoc server will be available at: http://localhost:6060$(NC)"; \
+		echo "$(YELLOW)Press Ctrl+C to stop the server$(NC)"; \
+		cd $(GO_PROJECT) && godoc -http=:6060; \
+	else \
+		echo "$(YELLOW)Godoc not found. Installing...$(NC)"; \
+		go install golang.org/x/tools/cmd/godoc@latest; \
+		echo "$(BLUE)Godoc installed. Starting server...$(NC)"; \
+		echo "$(BLUE)Godoc server will be available at: http://localhost:6060$(NC)"; \
+		echo "$(YELLOW)Press Ctrl+C to stop the server$(NC)"; \
+		cd $(GO_PROJECT) && godoc -http=:6060; \
+	fi
+
+.PHONY: open-docs
+open-docs: docs-java ## Generate and open Java documentation in browser
+	@echo "$(BLUE)Opening Java documentation in browser...$(NC)"
+	@if [ -f "$(JAVA_PROJECT)/build/docs/javadoc/index.html" ]; then \
+		if command -v open >/dev/null 2>&1; then \
+			open "$(JAVA_PROJECT)/build/docs/javadoc/index.html"; \
+		elif command -v xdg-open >/dev/null 2>&1; then \
+			xdg-open "$(JAVA_PROJECT)/build/docs/javadoc/index.html"; \
+		else \
+			echo "$(BLUE)Please open: $(JAVA_PROJECT)/build/docs/javadoc/index.html$(NC)"; \
+		fi; \
+	else \
+		echo "$(RED)Java documentation not found. Run 'make docs-java' first.$(NC)"; \
+	fi
+
+.PHONY: open-godoc
+open-godoc: ## Open Go documentation in browser (requires godoc server running)
+	@echo "$(BLUE)Opening Go documentation in browser...$(NC)"
+	@if command -v open >/dev/null 2>&1; then \
+		open http://localhost:6060/pkg/enricher-api-go/; \
+	elif command -v xdg-open >/dev/null 2>&1; then \
+		xdg-open http://localhost:6060/pkg/enricher-api-go/; \
+	else \
+		echo "$(BLUE)Please open: http://localhost:6060/pkg/enricher-api-go/$(NC)"; \
+	fi
+
+.PHONY: docs-serve
+docs-serve: ## Start documentation servers (Javadoc + Godoc)
+	@echo "$(BLUE)Starting documentation servers...$(NC)"
+	@echo "$(YELLOW)Java Javadoc: $(JAVA_PROJECT)/build/docs/javadoc/index.html$(NC)"
+	@echo "$(YELLOW)Go Godoc: http://localhost:6060/pkg/enricher-api-go/$(NC)"
+	@echo "$(BLUE)Starting Go godoc server in background...$(NC)"
+	@if command -v godoc >/dev/null 2>&1; then \
+		cd $(GO_PROJECT) && godoc -http=:6060 & \
+	else \
+		echo "$(YELLOW)Installing godoc...$(NC)"; \
+		go install golang.org/x/tools/cmd/godoc@latest; \
+		cd $(GO_PROJECT) && godoc -http=:6060 & \
+	fi; \
+	echo "$(GREEN)Documentation servers started!$(NC)"; \
+	echo "$(BLUE)Press Ctrl+C to stop$(NC)"; \
+	wait
 
 .PHONY: swagger
 swagger: ## Open Swagger UI in browser

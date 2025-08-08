@@ -1523,6 +1523,104 @@ http://localhost:8081/swagger-ui.html
 http://localhost:8081/v3/api-docs
 ```
 
+### Code Documentation (Javadoc + Godoc)
+
+The project generates comprehensive code documentation for both Java and Go
+components.
+
+#### **Java Documentation (Javadoc)**
+
+**Generate and View Java Documentation:**
+
+```bash
+# Generate Java documentation
+make docs-java
+
+# Generate and open in browser
+make open-docs
+
+# Manual access
+open build/docs/javadoc/index.html
+```
+
+**Features:**
+
+- ✅ Complete API documentation with JavaDoc comments
+- ✅ Class hierarchy and inheritance diagrams
+- ✅ Method signatures and parameter descriptions
+- ✅ Package organization and structure
+- ✅ Search functionality
+- ✅ Cross-references between classes
+
+#### **Go Documentation (Godoc)**
+
+**Generate and View Go Documentation:**
+
+```bash
+# Start Go documentation server
+make docs-go
+
+# Open Go documentation in browser (requires server running)
+make open-godoc
+
+# Start both documentation servers
+make docs-serve
+```
+
+**Features:**
+
+- ✅ Interactive documentation server at `http://localhost:6060`
+- ✅ Package documentation with examples
+- ✅ Function signatures and documentation
+- ✅ Type definitions and interfaces
+- ✅ Source code browsing
+- ✅ Cross-package references
+
+#### **Documentation Commands Summary**
+
+```bash
+# Generate all documentation
+make docs                    # Java + Go documentation
+
+# Java-specific
+make docs-java              # Generate Javadoc
+make open-docs              # Generate and open Javadoc in browser
+
+# Go-specific
+make docs-go                # Start Godoc server
+make open-godoc             # Open Godoc in browser (requires server)
+make docs-serve             # Start both documentation servers
+
+# Manual access
+# Java: build/docs/javadoc/index.html
+# Go: http://localhost:6060/pkg/enricher-api-go/
+```
+
+#### **Documentation Structure**
+
+**Java Documentation:**
+
+```
+build/docs/javadoc/
+├── index.html              # Main documentation page
+├── com/resilient/orderworker/
+│   ├── order/              # Order processing classes
+│   ├── customer/           # Customer enrichment classes
+│   ├── product/            # Product enrichment classes
+│   └── infrastructure/     # Technical infrastructure
+└── resources/              # CSS, JS, images
+```
+
+**Go Documentation:**
+
+```
+http://localhost:6060/pkg/enricher-api-go/
+├── cmd/server/             # Application entry point
+├── internal/customer/      # Customer domain
+├── internal/product/       # Product domain
+└── pkg/                    # Public packages
+```
+
 ### Java Spring Boot API Endpoints
 
 **Order Management API:**
