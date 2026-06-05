@@ -1,13 +1,11 @@
-# Development profile configuration
 spring:
   data:
     mongodb:
       uri: mongodb://localhost:27017
       database: order_worker_dev
-
-  redis:
-    host: localhost
-    port: 6379
+    redis:
+      host: localhost
+      port: 6379
 
 kafka:
   bootstrap-servers: localhost:9092
@@ -18,17 +16,12 @@ kafka:
 enricher-api:
   base-url: http://localhost:8080
 
-# Enable debug logging for development
 logging:
   level:
     com.resilient.orderworker: DEBUG
-    org.springframework.kafka: DEBUG
-    org.springframework.data.mongodb: DEBUG
-    reactor.kafka: DEBUG
-  pattern:
-    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    org.springframework.kafka: INFO
+    org.springframework.data.mongodb: INFO
 
-# Relaxed resilience settings for development
 resilience4j:
   circuitbreaker:
     instances:
@@ -38,7 +31,6 @@ resilience4j:
       productService:
         failure-rate-threshold: 80
         wait-duration-in-open-state: 10s
-
   retry:
     instances:
       customerService:

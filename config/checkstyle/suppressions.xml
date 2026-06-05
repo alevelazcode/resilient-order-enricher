@@ -4,59 +4,33 @@
         "https://checkstyle.org/dtds/suppressions_1_2.dtd">
 
 <suppressions>
-    <!-- Suppress DesignForExtension for Spring Boot configuration classes -->
-    <suppress checks="DesignForExtension" files=".*Config\.java"/>
+    <!-- DesignForExtension does not fit Spring/AOP patterns where classes need to be proxied. -->
+    <suppress checks="DesignForExtension" files=".*"/>
 
-    <!-- Suppress FinalParameters for test files -->
-    <suppress checks="FinalParameters" files=".*Test\.java"/>
-    <suppress checks="FinalParameters" files=".*Tests\.java"/>
-
-    <!-- Suppress MagicNumber for test files -->
-    <suppress checks="MagicNumber" files=".*Test\.java"/>
-    <suppress checks="MagicNumber" files=".*Tests\.java"/>
-
-    <!-- Suppress MethodName style for test methods using descriptive names -->
+    <!-- Tests use descriptive method names with underscores and may include magic numbers. -->
     <suppress checks="MethodName" files=".*Test\.java"/>
-    <suppress checks="MethodName" files=".*IntegrationTest\.java"/>
-
-    <!-- Suppress ParameterNumber for complex test helpers -->
+    <suppress checks="MagicNumber" files=".*Test\.java"/>
     <suppress checks="ParameterNumber" files=".*Test\.java"/>
-    <suppress checks="ParameterNumber" files=".*Tests\.java"/>
-
-    <!-- Suppress LineLength in tests where long JSON examples and URLs are expected -->
     <suppress checks="LineLength" files=".*Test\.java"/>
-    <suppress checks="LineLength" files=".*IntegrationTest\.java"/>
 
-    <!-- Suppress HiddenField for DTOs and entities -->
-    <suppress checks="HiddenField" files=".*dto.*\.java"/>
-    <suppress checks="HiddenField" files=".*entity.*\.java"/>
+    <!-- Document classes commonly need many fields (DTOs / Mongo documents). -->
+    <suppress checks="VisibilityModifier" files=".*Document\.java"/>
+    <suppress checks="HiddenField" files=".*Document\.java"/>
+    <suppress checks="ParameterNumber" files=".*Document\.java"/>
 
-    <!-- Suppress VisibilityModifier for Spring Boot entities and DTOs -->
-    <suppress checks="VisibilityModifier" files=".*entity.*\.java"/>
-    <suppress checks="VisibilityModifier" files=".*dto.*\.java"/>
-
-    <!-- Suppress TodoComment for development -->
-    <suppress checks="TodoComment" files=".*"/>
-
-    <!-- App-specific suppressions to reduce noise for common Spring patterns -->
-    <suppress checks="DesignForExtension" files=".*Controller\.java"/>
-    <suppress checks="DesignForExtension" files=".*ExceptionHandler\.java"/>
-    <suppress checks="DesignForExtension" files=".*FailedMessageService\.java"/>
-    <suppress checks="DesignForExtension" files=".*MockDistributedLockService\.java"/>
-    <suppress checks="DesignForExtension" files=".*RedisDistributedLockService\.java"/>
-
-    <!-- Resolve Spotless vs Checkstyle brace style conflicts for empty bodies -->
-    <suppress checks="WhitespaceAround" files=".*/order/dto/OrderMessage\.java"/>
-    <suppress checks="WhitespaceAround" files=".*/order/entity/Order\.java"/>
-    <suppress checks="WhitespaceAround" files=".*/common/exception/GlobalExceptionHandler\.java"/>
-    <suppress checks="WhitespaceAround" files=".*/infrastructure/redis/FailedMessageService\.java"/>
-
-    <!-- Config classes may use numeric literals for timeouts/sizes -->
+    <!-- Config/Adapter classes may use numeric literals for timeouts, sizes, retries. -->
     <suppress checks="MagicNumber" files=".*Config\.java"/>
+    <suppress checks="MagicNumber" files=".*Adapter\.java"/>
 
-    <!-- Main Spring Boot application entrypoint pattern -->
+    <!-- googleJavaFormat AOSP produces inline empty bodies "{ }" that Checkstyle flags. -->
+    <suppress checks="WhitespaceAround" files=".*\.java" lines="1-1000"/>
+
+    <!-- The Spring Boot application entrypoint uses public main. -->
     <suppress checks="HideUtilityClassConstructor" files=".*/OrderWorkerApplication\.java"/>
 
-    <!-- Relax final parameter enforcement globally (team preference) -->
+    <!-- Project preference: do not force final on parameters. -->
     <suppress checks="FinalParameters" files=".*"/>
+
+    <!-- TODO/FIXME allowed during development. -->
+    <suppress checks="TodoComment" files=".*"/>
 </suppressions>

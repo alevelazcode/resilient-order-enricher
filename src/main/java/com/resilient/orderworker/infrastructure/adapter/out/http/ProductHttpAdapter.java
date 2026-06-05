@@ -1,0 +1,93 @@
+/*
+ * Copyright (c) 2025 Resilient Order Enricher
+ *
+ * Licensed under the MIT License.
+ */
+package com.resilient.orderworker.infrastructure.adapter.out.http;
+
+import java.time.Duration;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.resilient.orderworker.application.port.out.ProductProvider;
+import com.resilient.orderworker.domain.exception.ExternalServiceException;
+import com.resilient.orderworker.domain.exception.ProductNotFoundException;
+import com.resilient.orderworker.domain.product.Product;
+
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.reactor.retry.RetryOperator;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryRegistry;
+import jakarta.annotation.PostConstruct;
+import reactor.core.publisher.Mono;
+
+@Component
+public class ProductHttpAdapter implements ProductProvider {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ProductHttpAdapter.class);
+    private static final String CB_NAME = "productService";
+
+    private final WebClient webClient;
+    private final RetryRegistry retryRegistry;
+    private final Cache<String, Product> cache;
+    private Retry retry;
+
+    public ProductHttpAdapter(
+            @Qualifier("enricherApiWebClient") WebClient webClient, RetryRegistry retryRegistry) {
+        this.webClient = webClient;
+        this.retryRegistry = retryRegistry;
+        this.cache =
+                Caffeine.newBuilder()
+                        .maximumSize(10_000)
+                        .expireAfterWrite(Duration.ofMinutes(30))
+                        .build();
+    }
+
+    @PostConstruct
+    void init() {
+        this.retry = retryRegistry.retry(CB_NAME);
+    }
+
+    @Override
+    @CircuitBreaker(name = CB_NAME)
+    public Mono<Product> getProduct(String productId) {
+        Product cached = cache.getIfPresent(productId);
+        if (cached != null) {
+            return Mono.just(cached);
+        }
+        return fetch(productId)
+                .transformDeferred(RetryOperator.of(retry))
+                .doOnNext(p -> cache.put(productId, p));
+    }
+
+    private Mono<Product> fetch(String productId) {
+        return webClient
+                .get()
+                .uri("/v1/products/{id}", productId)
+                .retrieve()
+                .bodyToMono(ProductDto.class)
+                .map(ProductDto::toDomain)
+                .onErrorMap(WebClientResponseException.class, this::mapError)
+                .doOnError(
+                        err ->
+                                LOG.warn(
+                                        "Product fetch failed for {}: {}",
+                                        productId,
+                                        err.toString()));
+    }
+
+    private Throwable mapError(WebClientResponseException ex) {
+        if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
+            return new ProductNotFoundException(ex.getMessage());
+        }
+        return new ExternalServiceException("Product API error: " + ex.getStatusCode(), ex);
+    }
+}
