@@ -1,21 +1,33 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Create the Kafka topics the worker expects. Topics auto-create at first publish
+# (KAFKA_AUTO_CREATE_TOPICS_ENABLE=true), so this script is only needed when you
+# want explicit configuration (e.g. partitions, replication).
 
-# Script to setup Kafka topics for the order worker application
+set -euo pipefail
 
-echo "Setting up Kafka topics..."
+KAFKA_BIN=/opt/kafka/bin
+BROKER=${KAFKA_BROKER:-kafka:9092}
+PARTITIONS=${KAFKA_PARTITIONS:-3}
+REPLICATION=${KAFKA_REPLICATION:-1}
 
-# Wait for Kafka to be ready
-echo "Waiting for Kafka to be ready..."
-sleep 30
+container=$(docker compose ps -q kafka)
+if [[ -z "$container" ]]; then
+  echo "Kafka container is not running. Start it with: docker compose up -d kafka" >&2
+  exit 1
+fi
 
-# Create orders topic
-docker exec -it $(docker ps -q -f name=kafka) kafka-topics --bootstrap-server localhost:9092 --create --topic orders --partitions 3 --replication-factor 1 --if-not-exists
+create_topic() {
+  local topic=$1
+  docker exec "$container" "$KAFKA_BIN/kafka-topics.sh" \
+    --bootstrap-server "$BROKER" \
+    --create --if-not-exists \
+    --topic "$topic" \
+    --partitions "$PARTITIONS" \
+    --replication-factor "$REPLICATION"
+}
 
-# Create dead letter queue topic for failed messages
-docker exec -it $(docker ps -q -f name=kafka) kafka-topics --bootstrap-server localhost:9092 --create --topic orders-dlq --partitions 3 --replication-factor 1 --if-not-exists
+create_topic orders
+create_topic orders-dlq
 
-# List topics to verify
-echo "Created topics:"
-docker exec -it $(docker ps -q -f name=kafka) kafka-topics --bootstrap-server localhost:9092 --list
-
-echo "Kafka setup complete!"
+echo "Topics in cluster:"
+docker exec "$container" "$KAFKA_BIN/kafka-topics.sh" --bootstrap-server "$BROKER" --list

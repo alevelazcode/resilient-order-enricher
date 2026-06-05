@@ -1,17 +1,25 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# Publish a single order message to the `orders` Kafka topic via the running container.
 
-# Script to send test messages to Kafka for order processing
+set -euo pipefail
 
-if [ "$#" -ne 1 ]; then
-    echo "Usage: $0 <order_id>"
-    echo "Example: $0 order-123"
-    exit 1
+if [[ $# -lt 1 ]]; then
+  echo "Usage: $0 <order_id>" >&2
+  echo "Example: $0 order-123" >&2
+  exit 1
 fi
 
 ORDER_ID=$1
+BROKER=${KAFKA_BROKER:-kafka:9092}
+TOPIC=${KAFKA_TOPIC:-orders}
 
-# Test message JSON
-TEST_MESSAGE=$(cat <<EOF
+container=$(docker compose ps -q kafka)
+if [[ -z "$container" ]]; then
+  echo "Kafka container is not running. Start it with: docker compose up -d kafka" >&2
+  exit 1
+fi
+
+read -r -d '' PAYLOAD <<EOF || true
 {
   "orderId": "${ORDER_ID}",
   "customerId": "customer-456",
@@ -23,13 +31,11 @@ TEST_MESSAGE=$(cat <<EOF
   ]
 }
 EOF
-)
 
-echo "Sending test message for order: $ORDER_ID"
-echo "Message: $TEST_MESSAGE"
+echo "Publishing to topic '$TOPIC' on broker '$BROKER':"
+echo "$PAYLOAD"
 
-# Send message to Kafka
-echo "$TEST_MESSAGE" | docker exec -i $(docker ps -q -f name=kafka) kafka-console-producer --bootstrap-server localhost:9092 --topic orders
+echo "$PAYLOAD" | docker exec -i "$container" \
+  /opt/kafka/bin/kafka-console-producer.sh --bootstrap-server "$BROKER" --topic "$TOPIC"
 
-echo "Message sent successfully!"
-echo "Check logs with: docker logs -f order-worker_order-worker_1"
+echo "Sent."
