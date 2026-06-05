@@ -1,35 +1,39 @@
-# Multi-stage build for Java application
-FROM gradle:8.11-jdk21-alpine AS builder
+# syntax=docker/dockerfile:1.7
+# ============================================================
+# Build stage
+# ============================================================
+FROM eclipse-temurin:21-jdk-jammy AS builder
+WORKDIR /workspace
 
-WORKDIR /app
-COPY build.gradle.kts settings.gradle.kts gradle.properties ./
-COPY gradle/ gradle/
-COPY src/ src/
-COPY config/ config/
+COPY gradle gradle
+COPY gradlew settings.gradle.kts build.gradle.kts gradle.properties ./
+RUN --mount=type=cache,target=/root/.gradle ./gradlew --version >/dev/null
 
-# Build the application
-RUN gradle clean build -x test -x checkstyleMain -x checkstyleTest -x spotlessCheck --no-daemon
+COPY config config
+COPY src src
 
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew clean bootJar -x test -x checkstyleMain -x checkstyleTest -x spotlessCheck
+
+# Extract layered jar so each layer is cacheable independently.
+RUN java -Djarmode=layertools -jar build/libs/order-worker.jar extract --destination extracted
+
+# ============================================================
 # Runtime stage
-FROM openjdk:21-jdk-slim
+# ============================================================
+FROM eclipse-temurin:21-jre-jammy
 
+RUN groupadd --system app && useradd --system --gid app --home /app --shell /sbin/nologin app
+USER app
 WORKDIR /app
 
-# Create non-root user
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
-# Copy the built jar
-COPY --from=builder /app/build/libs/order-worker.jar app.jar
-
-# Change ownership
-RUN chown -R appuser:appuser /app
-
-USER appuser
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:8081/actuator/health || exit 1
+COPY --from=builder --chown=app:app /workspace/extracted/dependencies/ ./
+COPY --from=builder --chown=app:app /workspace/extracted/spring-boot-loader/ ./
+COPY --from=builder --chown=app:app /workspace/extracted/snapshot-dependencies/ ./
+COPY --from=builder --chown=app:app /workspace/extracted/application/ ./
 
 EXPOSE 8081
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+UseG1GC -XX:+ExitOnOutOfMemoryError"
+
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]
