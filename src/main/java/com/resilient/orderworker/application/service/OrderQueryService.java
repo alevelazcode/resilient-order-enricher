@@ -8,7 +8,7 @@ package com.resilient.orderworker.application.service;
 import org.springframework.stereotype.Service;
 
 import com.resilient.orderworker.application.port.in.QueryOrdersUseCase;
-import com.resilient.orderworker.application.port.out.OrderRepository;
+import com.resilient.orderworker.application.port.out.OrderQueryRepository;
 import com.resilient.orderworker.domain.order.Order;
 import com.resilient.orderworker.domain.order.OrderStatus;
 
@@ -18,20 +18,20 @@ import reactor.core.publisher.Mono;
 @Service
 public class OrderQueryService implements QueryOrdersUseCase {
 
-    private final OrderRepository orderRepository;
+    private final OrderQueryRepository orderQueryRepository;
 
-    public OrderQueryService(OrderRepository orderRepository) {
-        this.orderRepository = orderRepository;
+    public OrderQueryService(OrderQueryRepository orderQueryRepository) {
+        this.orderQueryRepository = orderQueryRepository;
     }
 
     @Override
     public Mono<Order> findByOrderId(String orderId) {
-        return orderRepository.findByOrderId(orderId);
+        return orderQueryRepository.findByOrderId(orderId);
     }
 
     @Override
     public Flux<Order> findByCustomerId(String customerId) {
-        return orderRepository.findByCustomerId(customerId);
+        return orderQueryRepository.findByCustomerId(customerId);
     }
 
     @Override
@@ -45,17 +45,18 @@ public class OrderQueryService implements QueryOrdersUseCase {
         Mono<Long> countMono;
 
         if (status != null && customerId != null) {
-            ordersFlux = orderRepository.findByStatusAndCustomerId(status, customerId, page, size);
-            countMono = orderRepository.countByStatusAndCustomerId(status, customerId);
+            ordersFlux =
+                    orderQueryRepository.findByStatusAndCustomerId(status, customerId, page, size);
+            countMono = orderQueryRepository.countByStatusAndCustomerId(status, customerId);
         } else if (status != null) {
-            ordersFlux = orderRepository.findByStatus(status, page, size);
-            countMono = orderRepository.countByStatus(status);
+            ordersFlux = orderQueryRepository.findByStatus(status, page, size);
+            countMono = orderQueryRepository.countByStatus(status);
         } else if (customerId != null) {
-            ordersFlux = orderRepository.findByCustomerId(customerId, page, size);
-            countMono = orderRepository.countByCustomerId(customerId);
+            ordersFlux = orderQueryRepository.findByCustomerId(customerId, page, size);
+            countMono = orderQueryRepository.countByCustomerId(customerId);
         } else {
-            ordersFlux = orderRepository.findAll(page, size);
-            countMono = orderRepository.count();
+            ordersFlux = orderQueryRepository.findAll(page, size);
+            countMono = orderQueryRepository.count();
         }
 
         return Mono.zip(ordersFlux.collectList(), countMono)

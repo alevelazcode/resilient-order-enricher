@@ -5,8 +5,7 @@
  */
 package com.resilient.orderworker.infrastructure.adapter.out.redis;
 
-import org.redisson.api.RedissonClient;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -17,10 +16,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Configuration
+@ConditionalOnProperty(name = "redisson.enabled", havingValue = "false")
 public class NoopFailedMessageAdapter {
 
     @Bean
-    @ConditionalOnMissingBean(RedissonClient.class)
     public FailedMessageStore noopFailedMessageStore() {
         return new FailedMessageStore() {
             @Override

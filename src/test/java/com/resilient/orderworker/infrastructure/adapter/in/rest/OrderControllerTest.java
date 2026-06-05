@@ -89,7 +89,7 @@ class OrderControllerTest {
     }
 
     @Test
-    void getByCustomer_returns404WhenEmpty() {
+    void getByCustomer_returns200WithEmptyArrayWhenEmpty() {
         when(queryOrders.findByCustomerId("c1")).thenReturn(Flux.empty());
 
         webTestClient
@@ -97,7 +97,12 @@ class OrderControllerTest {
                 .uri("/api/v1/orders/customer/c1")
                 .exchange()
                 .expectStatus()
-                .isNotFound();
+                .isOk()
+                .expectBody()
+                .jsonPath("$")
+                .isArray()
+                .jsonPath("$.length()")
+                .isEqualTo(0);
     }
 
     private Order sample() {

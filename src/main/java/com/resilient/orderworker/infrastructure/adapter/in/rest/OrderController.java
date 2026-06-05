@@ -5,10 +5,7 @@
  */
 package com.resilient.orderworker.infrastructure.adapter.in.rest;
 
-import java.util.List;
-
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +19,7 @@ import com.resilient.orderworker.domain.order.OrderStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -58,18 +56,9 @@ public class OrderController {
         return queryOrders.findAll(query).map(p -> PageResponse.from(p, OrderResponse::from));
     }
 
-    @Operation(summary = "Get orders by customer ID")
+    @Operation(summary = "Get orders by customer ID (empty list returns 200)")
     @GetMapping("/customer/{customerId}")
-    public Mono<ResponseEntity<List<OrderResponse>>> getOrdersByCustomer(
-            @PathVariable String customerId) {
-        return queryOrders
-                .findByCustomerId(customerId)
-                .map(OrderResponse::from)
-                .collectList()
-                .map(
-                        list ->
-                                list.isEmpty()
-                                        ? ResponseEntity.notFound().<List<OrderResponse>>build()
-                                        : ResponseEntity.ok(list));
+    public Flux<OrderResponse> getOrdersByCustomer(@PathVariable String customerId) {
+        return queryOrders.findByCustomerId(customerId).map(OrderResponse::from);
     }
 }

@@ -10,16 +10,16 @@ import java.time.Instant;
 import java.util.List;
 
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 @Document(collection = "orders")
 public class OrderDocument {
 
+    // Indexes (including the unique orderId index) are declared in MongoIndexInitializer
+    // so they are guaranteed to be created without auto-index-creation.
     @Id private String id;
 
-    @Indexed(unique = true)
     @Field("orderId")
     private String orderId;
 

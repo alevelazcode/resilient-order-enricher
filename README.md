@@ -43,10 +43,11 @@ those ports.
    |               application layer              |
    |   ProcessOrderUseCase / QueryOrdersUseCase   |
    |                                              |
-   |   ports/out:                                 |
-   |   OrderRepository    DistributedLock         |
-   |   CustomerProvider   FailedMessageStore      |
-   |   ProductProvider                            |
+   |   ports/out (Interface Segregation):         |
+   |   OrderRepository       (write + idempotency)|
+   |   OrderQueryRepository  (read side)          |
+   |   CustomerProvider   ProductProvider         |
+   |   DistributedLock    FailedMessageStore      |
    +----------+------------------+--------+-------+
               |                  |        |
               v                  v        v
@@ -83,7 +84,9 @@ src/main/java/com/resilient/orderworker
 ├── application
 │   ├── command/       (ProcessOrderCommand)
 │   ├── port/in/       (ProcessOrderUseCase, QueryOrdersUseCase)
-│   ├── port/out/      (OrderRepository, CustomerProvider, …)
+│   ├── port/out/      (OrderRepository, OrderQueryRepository,
+│   │                   CustomerProvider, ProductProvider,
+│   │                   DistributedLock, FailedMessageStore)
 │   └── service/       (OrderProcessor, OrderQueryService)
 └── infrastructure
     ├── adapter
@@ -129,16 +132,19 @@ src/main/java/com/resilient/orderworker
   `CallNotPermittedException`, `CustomerNotFoundException`, and
   `ProductNotFoundException` are explicitly ignored so retries do not
   amplify load when the circuit is open or the resource is missing.
-- **Distributed lock**: Redisson `RLock` keyed by `order-lock:{orderId}`
-  with a wait + lease duration. Released via `doFinally` so success and
-  failure paths both unlock.
+- **Distributed lock**: Redisson `RLockReactive` keyed by
+  `order-lock:{orderId}` with a wait + lease duration. Lock acquisition
+  and unlock are fully non-blocking so the worker never holds a reactor
+  thread waiting on Redis. Success and failure paths both unlock.
 - **Idempotent persistence**: `OrderRepository.existsByOrderId` short
   circuits before any external call, preventing duplicate work on
   redelivery.
 - **Failed-message retry**: failures are persisted to Redis with an
   attempt counter; `FailedMessageRetryScheduler` re-submits messages
-  once their backoff window elapses. After `MAX_ATTEMPTS` (5) the
-  message is moved to a dead-letter set for manual inspection.
+  once their backoff window elapses. The backoff is governed by the
+  `BackoffPolicy` strategy (`ExponentialBackoffPolicy` by default:
+  1s → 2s → 4s → 8s → 16s capped at 5 minutes, 5 attempts max). After
+  the cap the message moves to a dead-letter set for manual inspection.
 - **Reactive cache**: replaces the broken `@Cacheable` pattern. Caffeine
   stores resolved domain objects (`Customer`, `Product`) keyed by id,
   with TTL eviction.
@@ -289,3 +295,5 @@ waits for Kafka/Mongo/Redis/Go API to report healthy before starting.
   dependency).
 - Add TimeLimiter and Bulkhead on the outbound HTTP adapters so a slow
   Go API cannot saturate the worker.
+- Paginate `GET /api/v1/orders/customer/{customerId}` — currently
+  returns the full history for the customer.

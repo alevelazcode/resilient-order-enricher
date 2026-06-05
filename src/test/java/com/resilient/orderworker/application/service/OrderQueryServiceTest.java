@@ -17,7 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.resilient.orderworker.application.port.in.QueryOrdersUseCase;
-import com.resilient.orderworker.application.port.out.OrderRepository;
+import com.resilient.orderworker.application.port.out.OrderQueryRepository;
 import com.resilient.orderworker.domain.order.Order;
 import com.resilient.orderworker.domain.order.OrderLine;
 import com.resilient.orderworker.domain.order.OrderStatus;
@@ -29,7 +29,7 @@ import reactor.test.StepVerifier;
 @ExtendWith(MockitoExtension.class)
 class OrderQueryServiceTest {
 
-    @Mock private OrderRepository repository;
+    @Mock private OrderQueryRepository repository;
 
     @Test
     void findAll_pagesAcrossAllFilterBranches() {

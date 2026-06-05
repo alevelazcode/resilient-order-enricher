@@ -9,31 +9,31 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import org.redisson.api.RLock;
+import org.redisson.api.RLockReactive;
 import org.redisson.api.RedissonClient;
+import org.redisson.api.RedissonReactiveClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.resilient.orderworker.application.port.out.DistributedLock;
 import com.resilient.orderworker.domain.exception.OrderProcessingException;
 
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 @Component
-@ConditionalOnBean(RedissonClient.class)
+@ConditionalOnProperty(name = "redisson.enabled", havingValue = "true", matchIfMissing = true)
 public class RedissonDistributedLockAdapter implements DistributedLock {
 
     private static final Logger LOG = LoggerFactory.getLogger(RedissonDistributedLockAdapter.class);
     private static final Duration DEFAULT_WAIT = Duration.ofSeconds(10);
     private static final Duration DEFAULT_LEASE = Duration.ofSeconds(30);
 
-    private final RedissonClient redisson;
+    private final RedissonReactiveClient reactive;
 
     public RedissonDistributedLockAdapter(RedissonClient redisson) {
-        this.redisson = redisson;
+        this.reactive = redisson.reactive();
     }
 
     @Override
@@ -44,38 +44,28 @@ public class RedissonDistributedLockAdapter implements DistributedLock {
     @Override
     public <T> Mono<T> executeWithLock(
             String key, Duration waitTime, Duration leaseTime, Supplier<Mono<T>> task) {
-        return Mono.fromCallable(() -> acquire(key, waitTime, leaseTime))
-                .subscribeOn(Schedulers.boundedElastic())
+        RLockReactive lock = reactive.getLock(key);
+        return lock.tryLock(waitTime.toMillis(), leaseTime.toMillis(), TimeUnit.MILLISECONDS)
                 .flatMap(
-                        lock ->
-                                task.get()
-                                        .doFinally(
-                                                signal -> {
-                                                    try {
-                                                        if (lock.isHeldByCurrentThread()) {
-                                                            lock.unlock();
-                                                        }
-                                                    } catch (Exception e) {
-                                                        LOG.warn(
-                                                                "Failed to unlock {}: {}",
-                                                                key,
-                                                                e.toString());
-                                                    }
-                                                }));
+                        acquired -> {
+                            if (Boolean.FALSE.equals(acquired)) {
+                                return Mono.error(
+                                        new OrderProcessingException(
+                                                "Could not acquire lock: " + key));
+                            }
+                            return task.get()
+                                    .flatMap(result -> safeUnlock(lock, key).thenReturn(result))
+                                    .onErrorResume(
+                                            err -> safeUnlock(lock, key).then(Mono.error(err)));
+                        });
     }
 
-    private RLock acquire(String key, Duration waitTime, Duration leaseTime) {
-        RLock lock = redisson.getLock(key);
-        try {
-            boolean acquired =
-                    lock.tryLock(waitTime.toMillis(), leaseTime.toMillis(), TimeUnit.MILLISECONDS);
-            if (!acquired) {
-                throw new OrderProcessingException("Could not acquire lock: " + key);
-            }
-            return lock;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new OrderProcessingException("Interrupted acquiring lock: " + key, e);
-        }
+    private static Mono<Void> safeUnlock(RLockReactive lock, String key) {
+        return lock.unlock()
+                .onErrorResume(
+                        err -> {
+                            LOG.warn("Failed to unlock {}: {}", key, err.toString());
+                            return Mono.empty();
+                        });
     }
 }

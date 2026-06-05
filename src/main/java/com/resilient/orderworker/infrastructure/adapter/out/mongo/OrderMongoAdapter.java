@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import com.resilient.orderworker.application.port.out.OrderQueryRepository;
 import com.resilient.orderworker.application.port.out.OrderRepository;
 import com.resilient.orderworker.domain.order.Order;
 import com.resilient.orderworker.domain.order.OrderStatus;
@@ -18,7 +19,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Component
-public class OrderMongoAdapter implements OrderRepository {
+public class OrderMongoAdapter implements OrderRepository, OrderQueryRepository {
 
     private static final Sort DEFAULT_SORT = Sort.by(Sort.Direction.DESC, "processedAt");
 

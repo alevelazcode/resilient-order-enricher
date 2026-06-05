@@ -35,7 +35,19 @@ public class MongoIndexInitializer {
         LOG.info("Ensuring MongoDB indexes on 'orders' collection");
         var ops = mongoTemplate.indexOps(OrderDocument.class);
 
-        ops.ensureIndex(new Index().on("customerId", Sort.Direction.ASC).named("idx_customerId"))
+        // Unique orderId enforces idempotency at the storage layer as a defence-in-depth
+        // against duplicate sends — Spring Data does not honour @Indexed unless
+        // spring.data.mongodb.auto-index-creation is true, so create it explicitly.
+        ops.ensureIndex(
+                        new Index()
+                                .on("orderId", Sort.Direction.ASC)
+                                .unique()
+                                .named("idx_orderId_unique"))
+                .then(
+                        ops.ensureIndex(
+                                new Index()
+                                        .on("customerId", Sort.Direction.ASC)
+                                        .named("idx_customerId")))
                 .then(
                         ops.ensureIndex(
                                 new Index().on("status", Sort.Direction.ASC).named("idx_status")))

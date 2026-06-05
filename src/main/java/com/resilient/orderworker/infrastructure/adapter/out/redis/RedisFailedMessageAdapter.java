@@ -14,7 +14,7 @@ import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -27,7 +27,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @Component
-@ConditionalOnBean(RedissonClient.class)
+@ConditionalOnProperty(name = "redisson.enabled", havingValue = "true", matchIfMissing = true)
 public class RedisFailedMessageAdapter implements FailedMessageStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(RedisFailedMessageAdapter.class);
@@ -39,16 +39,15 @@ public class RedisFailedMessageAdapter implements FailedMessageStore {
     private static final String DEAD_LETTER_PREFIX = "dead_letter:";
     private static final String DEAD_LETTER_SET = "dead_letter_queue";
 
-    private static final int MAX_ATTEMPTS = 5;
-    private static final long INITIAL_DELAY_MS = Duration.ofSeconds(1).toMillis();
-    private static final long MAX_DELAY_MS = Duration.ofMinutes(5).toMillis();
-
     private final RedissonClient redisson;
     private final ObjectMapper objectMapper;
+    private final BackoffPolicy backoffPolicy;
 
-    public RedisFailedMessageAdapter(RedissonClient redisson, ObjectMapper objectMapper) {
+    public RedisFailedMessageAdapter(
+            RedissonClient redisson, ObjectMapper objectMapper, BackoffPolicy backoffPolicy) {
         this.redisson = redisson;
         this.objectMapper = objectMapper;
+        this.backoffPolicy = backoffPolicy;
     }
 
     @Override
@@ -58,97 +57,11 @@ public class RedisFailedMessageAdapter implements FailedMessageStore {
                 .then();
     }
 
-    private void persist(ProcessOrderCommand command, Throwable error) {
-        String orderId = command.orderId();
-        RBucket<Integer> attemptsBucket = redisson.getBucket(ATTEMPTS_PREFIX + orderId);
-        Integer current = attemptsBucket.get();
-        int attempts = (current == null ? 0 : current) + 1;
-
-        if (attempts > MAX_ATTEMPTS) {
-            LOG.error("Order {} exhausted retries; moving to dead letter", orderId);
-            moveToDeadLetter(command, error, attempts);
-            return;
-        }
-
-        long delay = Math.min((long) (INITIAL_DELAY_MS * Math.pow(2, attempts - 1)), MAX_DELAY_MS);
-        long nextRetryEpoch = System.currentTimeMillis() + delay;
-
-        try {
-            String json =
-                    objectMapper.writeValueAsString(
-                            new Envelope(command, attempts, nextRetryEpoch));
-            redisson.getBucket(MESSAGE_PREFIX + orderId).set(json);
-            attemptsBucket.set(attempts);
-            redisson.getBucket(NEXT_RETRY_PREFIX + orderId).set(nextRetryEpoch);
-            RSet<String> set = redisson.getSet(FAILED_SET);
-            set.add(orderId);
-            LOG.warn(
-                    "Stored failed message {} (attempt {}/{}, next retry in {}ms)",
-                    orderId,
-                    attempts,
-                    MAX_ATTEMPTS,
-                    delay);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Cannot serialize failed message: " + orderId, e);
-        }
-    }
-
-    private void moveToDeadLetter(ProcessOrderCommand command, Throwable error, int attempts) {
-        String orderId = command.orderId();
-        try {
-            String json = objectMapper.writeValueAsString(new Envelope(command, attempts, 0L));
-            redisson.getBucket(DEAD_LETTER_PREFIX + orderId).set(json);
-            redisson.<String>getSet(DEAD_LETTER_SET).add(orderId);
-        } catch (JsonProcessingException e) {
-            LOG.error("Failed to write dead-letter for {}: {}", orderId, e.toString());
-        }
-        cleanup(orderId);
-    }
-
-    private void cleanup(String orderId) {
-        redisson.getBucket(MESSAGE_PREFIX + orderId).delete();
-        redisson.getBucket(ATTEMPTS_PREFIX + orderId).delete();
-        redisson.getBucket(NEXT_RETRY_PREFIX + orderId).delete();
-        redisson.<String>getSet(FAILED_SET).remove(orderId);
-    }
-
     @Override
     public Flux<FailedMessage> readyForRetry() {
         return Mono.fromCallable(this::collectReady)
                 .subscribeOn(Schedulers.boundedElastic())
                 .flatMapMany(Flux::fromIterable);
-    }
-
-    private List<FailedMessage> collectReady() {
-        long now = System.currentTimeMillis();
-        RSet<String> ids = redisson.getSet(FAILED_SET);
-        return ids.stream()
-                .filter(id -> isReady(id, now))
-                .map(this::loadEnvelope)
-                .filter(Objects::nonNull)
-                .map(
-                        env ->
-                                new FailedMessage(
-                                        env.command, env.attemptCount, env.nextRetryEpochMillis))
-                .toList();
-    }
-
-    private boolean isReady(String orderId, long now) {
-        Long next = (Long) redisson.getBucket(NEXT_RETRY_PREFIX + orderId).get();
-        return next != null && now >= next;
-    }
-
-    private Envelope loadEnvelope(String orderId) {
-        String json = (String) redisson.getBucket(MESSAGE_PREFIX + orderId).get();
-        if (json == null) {
-            return null;
-        }
-        try {
-            return objectMapper.readValue(json, Envelope.class);
-        } catch (JsonProcessingException e) {
-            LOG.error("Cannot deserialize failed message {}: {}", orderId, e.toString());
-            return null;
-        }
     }
 
     @Override
@@ -158,5 +71,90 @@ public class RedisFailedMessageAdapter implements FailedMessageStore {
                 .then();
     }
 
-    record Envelope(ProcessOrderCommand command, int attemptCount, long nextRetryEpochMillis) {}
+    private void persist(ProcessOrderCommand command, Throwable error) {
+        String orderId = command.orderId();
+        RBucket<Integer> attemptsBucket = redisson.getBucket(ATTEMPTS_PREFIX + orderId);
+        int attempts = Math.max(0, valueOrZero(attemptsBucket.get())) + 1;
+
+        if (attempts > backoffPolicy.maxAttempts()) {
+            LOG.error("Order {} exhausted retries; moving to dead letter", orderId);
+            moveToDeadLetter(command, error, attempts);
+            return;
+        }
+
+        Duration delay = backoffPolicy.nextDelay(attempts);
+        long nextRetryEpoch = System.currentTimeMillis() + delay.toMillis();
+        FailedMessage message = new FailedMessage(command, attempts, nextRetryEpoch);
+
+        String json = serialize(message, orderId);
+        redisson.getBucket(MESSAGE_PREFIX + orderId).set(json);
+        attemptsBucket.set(attempts);
+        redisson.getBucket(NEXT_RETRY_PREFIX + orderId).set(nextRetryEpoch);
+        redisson.<String>getSet(FAILED_SET).add(orderId);
+
+        LOG.warn(
+                "Stored failed message {} (attempt {}/{}, next retry in {}ms): {}",
+                orderId,
+                attempts,
+                backoffPolicy.maxAttempts(),
+                delay.toMillis(),
+                error.toString());
+    }
+
+    private void moveToDeadLetter(ProcessOrderCommand command, Throwable error, int attempts) {
+        String orderId = command.orderId();
+        FailedMessage dlqMessage = new FailedMessage(command, attempts, 0L);
+        String json = serialize(dlqMessage, orderId);
+        redisson.getBucket(DEAD_LETTER_PREFIX + orderId).set(json);
+        redisson.<String>getSet(DEAD_LETTER_SET).add(orderId);
+        cleanup(orderId);
+        LOG.error("Order {} moved to dead letter: {}", orderId, error.toString());
+    }
+
+    private void cleanup(String orderId) {
+        redisson.getBucket(MESSAGE_PREFIX + orderId).delete();
+        redisson.getBucket(ATTEMPTS_PREFIX + orderId).delete();
+        redisson.getBucket(NEXT_RETRY_PREFIX + orderId).delete();
+        redisson.<String>getSet(FAILED_SET).remove(orderId);
+    }
+
+    private List<FailedMessage> collectReady() {
+        long now = System.currentTimeMillis();
+        RSet<String> ids = redisson.getSet(FAILED_SET);
+        return ids.stream()
+                .filter(id -> isReady(id, now))
+                .map(this::loadMessage)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private boolean isReady(String orderId, long now) {
+        Long next = (Long) redisson.getBucket(NEXT_RETRY_PREFIX + orderId).get();
+        return next != null && now >= next;
+    }
+
+    private FailedMessage loadMessage(String orderId) {
+        String json = (String) redisson.getBucket(MESSAGE_PREFIX + orderId).get();
+        if (json == null) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(json, FailedMessage.class);
+        } catch (JsonProcessingException e) {
+            LOG.error("Cannot deserialize failed message {}: {}", orderId, e.toString());
+            return null;
+        }
+    }
+
+    private String serialize(FailedMessage message, String orderId) {
+        try {
+            return objectMapper.writeValueAsString(message);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Cannot serialize failed message: " + orderId, e);
+        }
+    }
+
+    private static int valueOrZero(Integer value) {
+        return value == null ? 0 : value;
+    }
 }
