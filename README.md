@@ -127,11 +127,16 @@ src/main/java/com/resilient/orderworker
   (`customerService`, `productService`). Trips on failure rate or slow
   calls. While open, calls fail fast with
   `CallNotPermittedException`.
+- **Time limiter (Resilience4j Reactor)**: 4-second hard cap on each
+  outbound HTTP fetch via `TimeLimiterOperator`. Times out (and feeds
+  the circuit breaker) before the downstream API can saturate the
+  worker.
 - **Retry (Resilience4j Reactor)**: applied around the network fetch
   (not around cache hits). Retries `ExternalServiceException` only.
-  `CallNotPermittedException`, `CustomerNotFoundException`, and
-  `ProductNotFoundException` are explicitly ignored so retries do not
-  amplify load when the circuit is open or the resource is missing.
+  `CallNotPermittedException`, `TimeoutException`,
+  `CustomerNotFoundException`, and `ProductNotFoundException` are
+  explicitly ignored so retries do not amplify load when the circuit is
+  open or the resource is missing.
 - **Distributed lock**: Redisson `RLockReactive` keyed by
   `order-lock:{orderId}` with a wait + lease duration. Lock acquisition
   and unlock are fully non-blocking so the worker never holds a reactor
@@ -242,7 +247,8 @@ Swagger UI at `/swagger-ui.html`.
 ## Testing
 
 ```bash
-./gradlew test
+./gradlew test            # unit + slice tests (no docker)
+./gradlew integrationTest # end-to-end with Kafka + Mongo + Redis testcontainers
 ```
 
 Test layout:
@@ -251,9 +257,15 @@ Test layout:
 - `application/service/` — use-case tests with Mockito ports.
 - `infrastructure/adapter/in/rest/` — `@WebFluxTest` slice that boots
   only the controller + exception handler.
+- `infrastructure/adapter/out/redis/` — pure-logic strategy tests
+  (`ExponentialBackoffPolicyTest`).
+- `integration/` — `@SpringBootTest` against real Kafka, MongoDB, and
+  Redis containers via Testcontainers; the Go enrichment API is stubbed
+  on the port. Tagged `@Tag("integration")` so it only runs via the
+  `integrationTest` Gradle task.
 
-The build runs Spotless, Checkstyle, and JUnit, and fails on any
-violation.
+The default `./gradlew check` runs Spotless, Checkstyle, and the
+unit/slice tests and fails on any violation.
 
 ## Build & quality gates
 
@@ -282,6 +294,32 @@ The `Dockerfile` is a two-stage build:
 
 The compose file uses `service_healthy` dependencies, so the worker
 waits for Kafka/Mongo/Redis/Go API to report healthy before starting.
+
+## Observability
+
+- `/actuator/health` (liveness/readiness via Spring Boot), `/actuator/metrics`,
+  `/actuator/prometheus` for scraping.
+- The Kafka listener container has `setObservationEnabled(true)`, so consumer
+  poll/processing metrics and traces are emitted automatically through
+  Micrometer.
+- Logging is wired through `logback-spring.xml`: a plain pattern in `dev` /
+  default profiles, and a `LogstashEncoder` JSON layout under the `prod`
+  profile so the service can ship straight into ELK / Loki / Cloud Logging.
+
+## Kafka behaviour
+
+- `ErrorHandlingDeserializer` wraps the key/value deserializers so a poison
+  pill (bad JSON, wrong schema) is captured as a
+  `DeserializationException` and routed to the configured
+  `DefaultErrorHandler` instead of crashing the container in a tight
+  loop.
+- The listener thread `block()`s on the reactive pipeline; the offset is
+  acknowledged only after the order has been processed or stored for retry.
+  This preserves per-partition ordering, while cross-partition parallelism
+  comes from the container `concurrency` setting.
+- Topic auto-creation is on for the development compose stack; in
+  production prefer explicit topic provisioning via
+  `./scripts/setup-kafka.sh` or your platform's topic tooling.
 
 ## Roadmap
 

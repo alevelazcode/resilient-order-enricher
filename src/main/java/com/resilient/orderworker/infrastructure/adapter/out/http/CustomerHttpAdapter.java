@@ -24,8 +24,11 @@ import com.resilient.orderworker.domain.exception.ExternalServiceException;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.reactor.retry.RetryOperator;
+import io.github.resilience4j.reactor.timelimiter.TimeLimiterOperator;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
+import io.github.resilience4j.timelimiter.TimeLimiter;
+import io.github.resilience4j.timelimiter.TimeLimiterRegistry;
 import jakarta.annotation.PostConstruct;
 import reactor.core.publisher.Mono;
 
@@ -33,17 +36,22 @@ import reactor.core.publisher.Mono;
 public class CustomerHttpAdapter implements CustomerProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(CustomerHttpAdapter.class);
-    private static final String CB_NAME = "customerService";
+    private static final String INSTANCE = "customerService";
 
     private final WebClient webClient;
     private final RetryRegistry retryRegistry;
+    private final TimeLimiterRegistry timeLimiterRegistry;
     private final Cache<String, Customer> cache;
     private Retry retry;
+    private TimeLimiter timeLimiter;
 
     public CustomerHttpAdapter(
-            @Qualifier("enricherApiWebClient") WebClient webClient, RetryRegistry retryRegistry) {
+            @Qualifier("enricherApiWebClient") WebClient webClient,
+            RetryRegistry retryRegistry,
+            TimeLimiterRegistry timeLimiterRegistry) {
         this.webClient = webClient;
         this.retryRegistry = retryRegistry;
+        this.timeLimiterRegistry = timeLimiterRegistry;
         this.cache =
                 Caffeine.newBuilder()
                         .maximumSize(10_000)
@@ -53,17 +61,19 @@ public class CustomerHttpAdapter implements CustomerProvider {
 
     @PostConstruct
     void init() {
-        this.retry = retryRegistry.retry(CB_NAME);
+        this.retry = retryRegistry.retry(INSTANCE);
+        this.timeLimiter = timeLimiterRegistry.timeLimiter(INSTANCE);
     }
 
     @Override
-    @CircuitBreaker(name = CB_NAME)
+    @CircuitBreaker(name = INSTANCE)
     public Mono<Customer> getCustomer(String customerId) {
         Customer cached = cache.getIfPresent(customerId);
         if (cached != null) {
             return Mono.just(cached);
         }
         return fetch(customerId)
+                .transformDeferred(TimeLimiterOperator.of(timeLimiter))
                 .transformDeferred(RetryOperator.of(retry))
                 .doOnNext(c -> cache.put(customerId, c));
     }

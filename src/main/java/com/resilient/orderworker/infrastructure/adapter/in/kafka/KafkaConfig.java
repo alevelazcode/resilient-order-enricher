@@ -10,6 +10,8 @@ import java.util.Map;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -18,11 +20,16 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.util.backoff.FixedBackOff;
 
 @Configuration
 @ConditionalOnProperty(name = "kafka.enabled", havingValue = "true", matchIfMissing = true)
 public class KafkaConfig {
+
+    private static final Logger LOG = LoggerFactory.getLogger(KafkaConfig.class);
 
     @Value("${kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
@@ -46,9 +53,20 @@ public class KafkaConfig {
         props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
         props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, maxPollRecords);
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+
+        // Wrap deserializers with ErrorHandlingDeserializer so a poisoned record
+        // (bad JSON, wrong schema) is captured as a DeserializationException
+        // routed to the error handler instead of stopping the container.
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ErrorHandlingDeserializer.class);
+        props.put(
+                ErrorHandlingDeserializer.KEY_DESERIALIZER_CLASS,
+                StringDeserializer.class.getName());
+        props.put(
+                ErrorHandlingDeserializer.VALUE_DESERIALIZER_CLASS,
+                JsonDeserializer.class.getName());
+
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.resilient.orderworker.*");
         props.put(JsonDeserializer.VALUE_DEFAULT_TYPE, OrderMessagePayload.class.getName());
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
@@ -64,6 +82,25 @@ public class KafkaConfig {
         factory.setConsumerFactory(consumerFactory);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
         factory.setConcurrency(concurrency);
+
+        // Drop poison-pill records after a single attempt; the listener itself
+        // routes business failures into Redis for backoff-driven replay.
+        DefaultErrorHandler errorHandler =
+                new DefaultErrorHandler(
+                        (record, exception) ->
+                                LOG.error(
+                                        "Dropping unrecoverable record (topic={}, partition={}, offset={}): {}",
+                                        record.topic(),
+                                        record.partition(),
+                                        record.offset(),
+                                        exception.toString()),
+                        new FixedBackOff(0L, 0L));
+        factory.setCommonErrorHandler(errorHandler);
+
+        // Enable Micrometer observation for the container so polls and processing
+        // surface in /actuator/prometheus and tracing exporters automatically.
+        factory.getContainerProperties().setObservationEnabled(true);
+
         return factory;
     }
 }

@@ -24,8 +24,11 @@ import com.resilient.orderworker.domain.product.Product;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.reactor.retry.RetryOperator;
+import io.github.resilience4j.reactor.timelimiter.TimeLimiterOperator;
 import io.github.resilience4j.retry.Retry;
 import io.github.resilience4j.retry.RetryRegistry;
+import io.github.resilience4j.timelimiter.TimeLimiter;
+import io.github.resilience4j.timelimiter.TimeLimiterRegistry;
 import jakarta.annotation.PostConstruct;
 import reactor.core.publisher.Mono;
 
@@ -33,17 +36,22 @@ import reactor.core.publisher.Mono;
 public class ProductHttpAdapter implements ProductProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProductHttpAdapter.class);
-    private static final String CB_NAME = "productService";
+    private static final String INSTANCE = "productService";
 
     private final WebClient webClient;
     private final RetryRegistry retryRegistry;
+    private final TimeLimiterRegistry timeLimiterRegistry;
     private final Cache<String, Product> cache;
     private Retry retry;
+    private TimeLimiter timeLimiter;
 
     public ProductHttpAdapter(
-            @Qualifier("enricherApiWebClient") WebClient webClient, RetryRegistry retryRegistry) {
+            @Qualifier("enricherApiWebClient") WebClient webClient,
+            RetryRegistry retryRegistry,
+            TimeLimiterRegistry timeLimiterRegistry) {
         this.webClient = webClient;
         this.retryRegistry = retryRegistry;
+        this.timeLimiterRegistry = timeLimiterRegistry;
         this.cache =
                 Caffeine.newBuilder()
                         .maximumSize(10_000)
@@ -53,17 +61,19 @@ public class ProductHttpAdapter implements ProductProvider {
 
     @PostConstruct
     void init() {
-        this.retry = retryRegistry.retry(CB_NAME);
+        this.retry = retryRegistry.retry(INSTANCE);
+        this.timeLimiter = timeLimiterRegistry.timeLimiter(INSTANCE);
     }
 
     @Override
-    @CircuitBreaker(name = CB_NAME)
+    @CircuitBreaker(name = INSTANCE)
     public Mono<Product> getProduct(String productId) {
         Product cached = cache.getIfPresent(productId);
         if (cached != null) {
             return Mono.just(cached);
         }
         return fetch(productId)
+                .transformDeferred(TimeLimiterOperator.of(timeLimiter))
                 .transformDeferred(RetryOperator.of(retry))
                 .doOnNext(p -> cache.put(productId, p));
     }

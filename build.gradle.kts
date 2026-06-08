@@ -61,10 +61,24 @@ dependencies {
 
     testImplementation("org.mockito:mockito-core")
     testImplementation("org.assertj:assertj-core")
+    testImplementation("org.awaitility:awaitility:4.2.2")
 }
 
-tasks.withType<Test> {
-    useJUnitPlatform()
+tasks.named<Test>("test") {
+    useJUnitPlatform {
+        excludeTags("integration")
+    }
+}
+
+tasks.register<Test>("integrationTest") {
+    description = "Runs JUnit tests tagged @Tag(\"integration\") — requires Docker."
+    group = "verification"
+    testClassesDirs = sourceSets["test"].output.classesDirs
+    classpath = sourceSets["test"].runtimeClasspath
+    useJUnitPlatform {
+        includeTags("integration")
+    }
+    shouldRunAfter("test")
 }
 
 tasks.withType<JavaCompile> {

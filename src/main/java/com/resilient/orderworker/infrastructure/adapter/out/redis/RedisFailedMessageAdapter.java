@@ -9,7 +9,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 
-import org.redisson.api.RBucket;
+import org.redisson.api.RAtomicLong;
 import org.redisson.api.RSet;
 import org.redisson.api.RedissonClient;
 import org.slf4j.Logger;
@@ -73,8 +73,10 @@ public class RedisFailedMessageAdapter implements FailedMessageStore {
 
     private void persist(ProcessOrderCommand command, Throwable error) {
         String orderId = command.orderId();
-        RBucket<Integer> attemptsBucket = redisson.getBucket(ATTEMPTS_PREFIX + orderId);
-        int attempts = Math.max(0, valueOrZero(attemptsBucket.get())) + 1;
+        // RAtomicLong guarantees an atomic read-modify-write so two concurrent
+        // failures for the same orderId increment to distinct values.
+        RAtomicLong attemptsCounter = redisson.getAtomicLong(ATTEMPTS_PREFIX + orderId);
+        int attempts = (int) attemptsCounter.incrementAndGet();
 
         if (attempts > backoffPolicy.maxAttempts()) {
             LOG.error("Order {} exhausted retries; moving to dead letter", orderId);
@@ -86,9 +88,7 @@ public class RedisFailedMessageAdapter implements FailedMessageStore {
         long nextRetryEpoch = System.currentTimeMillis() + delay.toMillis();
         FailedMessage message = new FailedMessage(command, attempts, nextRetryEpoch);
 
-        String json = serialize(message, orderId);
-        redisson.getBucket(MESSAGE_PREFIX + orderId).set(json);
-        attemptsBucket.set(attempts);
+        redisson.getBucket(MESSAGE_PREFIX + orderId).set(serialize(message, orderId));
         redisson.getBucket(NEXT_RETRY_PREFIX + orderId).set(nextRetryEpoch);
         redisson.<String>getSet(FAILED_SET).add(orderId);
 
@@ -104,8 +104,7 @@ public class RedisFailedMessageAdapter implements FailedMessageStore {
     private void moveToDeadLetter(ProcessOrderCommand command, Throwable error, int attempts) {
         String orderId = command.orderId();
         FailedMessage dlqMessage = new FailedMessage(command, attempts, 0L);
-        String json = serialize(dlqMessage, orderId);
-        redisson.getBucket(DEAD_LETTER_PREFIX + orderId).set(json);
+        redisson.getBucket(DEAD_LETTER_PREFIX + orderId).set(serialize(dlqMessage, orderId));
         redisson.<String>getSet(DEAD_LETTER_SET).add(orderId);
         cleanup(orderId);
         LOG.error("Order {} moved to dead letter: {}", orderId, error.toString());
@@ -113,7 +112,7 @@ public class RedisFailedMessageAdapter implements FailedMessageStore {
 
     private void cleanup(String orderId) {
         redisson.getBucket(MESSAGE_PREFIX + orderId).delete();
-        redisson.getBucket(ATTEMPTS_PREFIX + orderId).delete();
+        redisson.getAtomicLong(ATTEMPTS_PREFIX + orderId).delete();
         redisson.getBucket(NEXT_RETRY_PREFIX + orderId).delete();
         redisson.<String>getSet(FAILED_SET).remove(orderId);
     }
@@ -152,9 +151,5 @@ public class RedisFailedMessageAdapter implements FailedMessageStore {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Cannot serialize failed message: " + orderId, e);
         }
-    }
-
-    private static int valueOrZero(Integer value) {
-        return value == null ? 0 : value;
     }
 }

@@ -1,0 +1,40 @@
+spring:
+  kafka:
+    consumer:
+      auto-offset-reset: earliest
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+kafka:
+  enabled: true
+  consumer:
+    concurrency: 1
+  topics:
+    orders: orders
+
+redisson:
+  enabled: true
+
+enricher-api:
+  base-url: http://localhost:0
+  timeout:
+    connect: 1000
+    read: 2000
+    write: 2000
+    response: 4000
+
+resilience4j:
+  timelimiter:
+    instances:
+      customerService:
+        timeout-duration: 4s
+      productService:
+        timeout-duration: 4s
+
+logging:
+  level:
+    org.springframework.kafka: WARN
+    org.testcontainers: INFO
+    org.mongodb.driver: WARN
