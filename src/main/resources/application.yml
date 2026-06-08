@@ -50,6 +50,7 @@ kafka:
     auto-offset-reset: ${KAFKA_AUTO_OFFSET_RESET:earliest}
     max-poll-records: ${KAFKA_MAX_POLL_RECORDS:10}
     concurrency: ${KAFKA_CONSUMER_CONCURRENCY:3}
+    processing-timeout: ${KAFKA_PROCESSING_TIMEOUT:30s}
 
 enricher-api:
   base-url: ${ENRICHER_API_BASE_URL:http://localhost:8080}

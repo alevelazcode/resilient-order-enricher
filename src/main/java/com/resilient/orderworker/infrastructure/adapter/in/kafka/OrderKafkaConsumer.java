@@ -5,8 +5,11 @@
  */
 package com.resilient.orderworker.infrastructure.adapter.in.kafka;
 
+import java.time.Duration;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
@@ -28,6 +31,10 @@ import reactor.core.publisher.Mono;
  * acknowledgement only commits the offset after the message has been processed or routed into the
  * Redis-backed retry store, preserving per-partition ordering. Cross-partition parallelism comes
  * from the container concurrency setting.
+ *
+ * <p>The block has a hard ceiling so a stuck downstream (e.g. unresponsive Mongo / Redis) cannot
+ * hang the poll loop indefinitely and starve the consumer group; on timeout the failure is routed
+ * to the Redis retry store and the offset is acknowledged so Kafka can move on.
  */
 @Component
 @Validated
@@ -38,11 +45,15 @@ public class OrderKafkaConsumer {
 
     private final ProcessOrderUseCase processOrder;
     private final FailedMessageStore failedMessageStore;
+    private final Duration processingTimeout;
 
     public OrderKafkaConsumer(
-            ProcessOrderUseCase processOrder, FailedMessageStore failedMessageStore) {
+            ProcessOrderUseCase processOrder,
+            FailedMessageStore failedMessageStore,
+            @Value("${kafka.consumer.processing-timeout:30s}") Duration processingTimeout) {
         this.processOrder = processOrder;
         this.failedMessageStore = failedMessageStore;
+        this.processingTimeout = processingTimeout;
     }
 
     @KafkaListener(
@@ -60,13 +71,14 @@ public class OrderKafkaConsumer {
         try {
             processOrder
                     .process(command)
+                    .timeout(processingTimeout)
                     .doOnSuccess(order -> LOG.info("Processed order {}", order.orderId()))
                     .onErrorResume(
                             err -> {
                                 LOG.warn("Order {} failed: {}", command.orderId(), err.toString());
                                 return failedMessageStore.store(command, err).then(Mono.empty());
                             })
-                    .block();
+                    .block(processingTimeout.plusSeconds(5));
         } finally {
             acknowledgment.acknowledge();
         }
