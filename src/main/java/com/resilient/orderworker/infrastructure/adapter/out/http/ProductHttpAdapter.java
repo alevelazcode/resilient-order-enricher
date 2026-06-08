@@ -22,7 +22,10 @@ import com.resilient.orderworker.domain.exception.ExternalServiceException;
 import com.resilient.orderworker.domain.exception.ProductNotFoundException;
 import com.resilient.orderworker.domain.product.Product;
 
+import io.github.resilience4j.bulkhead.Bulkhead;
+import io.github.resilience4j.bulkhead.BulkheadRegistry;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.reactor.bulkhead.operator.BulkheadOperator;
 import io.github.resilience4j.reactor.retry.RetryOperator;
 import io.github.resilience4j.reactor.timelimiter.TimeLimiterOperator;
 import io.github.resilience4j.retry.Retry;
@@ -41,17 +44,21 @@ public class ProductHttpAdapter implements ProductProvider {
     private final WebClient webClient;
     private final RetryRegistry retryRegistry;
     private final TimeLimiterRegistry timeLimiterRegistry;
+    private final BulkheadRegistry bulkheadRegistry;
     private final Cache<String, Product> cache;
     private Retry retry;
     private TimeLimiter timeLimiter;
+    private Bulkhead bulkhead;
 
     public ProductHttpAdapter(
             @Qualifier("enricherApiWebClient") WebClient webClient,
             RetryRegistry retryRegistry,
-            TimeLimiterRegistry timeLimiterRegistry) {
+            TimeLimiterRegistry timeLimiterRegistry,
+            BulkheadRegistry bulkheadRegistry) {
         this.webClient = webClient;
         this.retryRegistry = retryRegistry;
         this.timeLimiterRegistry = timeLimiterRegistry;
+        this.bulkheadRegistry = bulkheadRegistry;
         this.cache =
                 Caffeine.newBuilder()
                         .maximumSize(10_000)
@@ -63,6 +70,7 @@ public class ProductHttpAdapter implements ProductProvider {
     void init() {
         this.retry = retryRegistry.retry(INSTANCE);
         this.timeLimiter = timeLimiterRegistry.timeLimiter(INSTANCE);
+        this.bulkhead = bulkheadRegistry.bulkhead(INSTANCE);
     }
 
     @Override
@@ -73,6 +81,7 @@ public class ProductHttpAdapter implements ProductProvider {
             return Mono.just(cached);
         }
         return fetch(productId)
+                .transformDeferred(BulkheadOperator.of(bulkhead))
                 .transformDeferred(TimeLimiterOperator.of(timeLimiter))
                 .transformDeferred(RetryOperator.of(retry))
                 .doOnNext(p -> cache.put(productId, p));

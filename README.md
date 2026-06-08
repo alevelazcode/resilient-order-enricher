@@ -131,6 +131,11 @@ src/main/java/com/resilient/orderworker
   outbound HTTP fetch via `TimeLimiterOperator`. Times out (and feeds
   the circuit breaker) before the downstream API can saturate the
   worker.
+- **Bulkhead (Resilience4j Reactor)**: bounds concurrent in-flight
+  calls per dependency (25 for customers, 50 for products) so a sudden
+  burst of orders cannot exhaust the Netty event loop. Overflow throws
+  `BulkheadFullException`, which is in the retry ignore list — caller
+  fails fast and the order moves to the Redis retry store.
 - **Retry (Resilience4j Reactor)**: applied around the network fetch
   (not around cache hits). Retries `ExternalServiceException` only.
   `CallNotPermittedException`, `TimeoutException`,
@@ -298,7 +303,10 @@ waits for Kafka/Mongo/Redis/Go API to report healthy before starting.
 ## Observability
 
 - `/actuator/health` (liveness/readiness via Spring Boot), `/actuator/metrics`,
-  `/actuator/prometheus` for scraping.
+  `/actuator/prometheus` for scraping. A custom `failedMessages` health
+  indicator surfaces the pending retry-queue size and turns the
+  composite health `OUT_OF_SERVICE` when the dead-letter set is
+  non-empty so an operator notices stuck messages.
 - The Kafka listener container has `setObservationEnabled(true)`, so consumer
   poll/processing metrics and traces are emitted automatically through
   Micrometer.
@@ -329,7 +337,8 @@ waits for Kafka/Mongo/Redis/Go API to report healthy before starting.
   methods).
 - Promote the dead-letter set to a real DLQ topic (e.g. `orders-dlq`)
   with a separate replay tool.
-- Wire Micrometer Tracing OTLP exporter so the `traceId` / `spanId`
-  MDC values populated by `logback-spring.xml` propagate end-to-end.
-- Add a Bulkhead on the outbound HTTP adapters to bound concurrent
-  enrichment calls in addition to the existing TimeLimiter.
+- Drop in an OTLP / Zipkin exporter (e.g. `opentelemetry-exporter-otlp`
+  or `zipkin-reporter-brave`) to ship the spans produced by
+  `micrometer-tracing-bridge-brave` to Tempo / Jaeger / Zipkin.
+- Promote the dead-letter set to a real DLQ topic (`orders-dlq`) plus a
+  small replay tool, so dead letters survive Redis flushes.

@@ -100,6 +100,7 @@ resilience4j:
           - com.resilient.orderworker.domain.exception.CustomerNotFoundException
           - com.resilient.orderworker.domain.exception.ProductNotFoundException
           - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+          - io.github.resilience4j.bulkhead.BulkheadFullException
           - java.util.concurrent.TimeoutException
       productService:
         max-attempts: 3
@@ -111,6 +112,7 @@ resilience4j:
           - com.resilient.orderworker.domain.exception.CustomerNotFoundException
           - com.resilient.orderworker.domain.exception.ProductNotFoundException
           - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+          - io.github.resilience4j.bulkhead.BulkheadFullException
           - java.util.concurrent.TimeoutException
 
   timelimiter:
@@ -121,6 +123,15 @@ resilience4j:
       productService:
         timeout-duration: 4s
         cancel-running-future: true
+
+  bulkhead:
+    instances:
+      customerService:
+        max-concurrent-calls: 25
+        max-wait-duration: 100ms
+      productService:
+        max-concurrent-calls: 50
+        max-wait-duration: 100ms
 
 app:
   scheduler:

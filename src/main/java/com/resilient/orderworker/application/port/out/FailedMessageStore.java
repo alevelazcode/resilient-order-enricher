@@ -18,6 +18,10 @@ public interface FailedMessageStore {
 
     Mono<Void> remove(String orderId);
 
+    Mono<Long> pendingCount();
+
+    Mono<Long> deadLetterCount();
+
     record FailedMessage(
             ProcessOrderCommand command, int attemptCount, long nextRetryEpochMillis) {}
 }

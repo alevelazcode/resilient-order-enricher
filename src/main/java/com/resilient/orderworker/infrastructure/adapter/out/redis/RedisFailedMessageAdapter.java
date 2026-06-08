@@ -71,6 +71,18 @@ public class RedisFailedMessageAdapter implements FailedMessageStore {
                 .then();
     }
 
+    @Override
+    public Mono<Long> pendingCount() {
+        return Mono.fromCallable(() -> (long) redisson.<String>getSet(FAILED_SET).size())
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
+    @Override
+    public Mono<Long> deadLetterCount() {
+        return Mono.fromCallable(() -> (long) redisson.<String>getSet(DEAD_LETTER_SET).size())
+                .subscribeOn(Schedulers.boundedElastic());
+    }
+
     private void persist(ProcessOrderCommand command, Throwable error) {
         String orderId = command.orderId();
         // RAtomicLong guarantees an atomic read-modify-write so two concurrent

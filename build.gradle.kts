@@ -30,9 +30,10 @@ dependencies {
     // Redis + Redisson (distributed lock + storage)
     implementation("org.redisson:redisson-spring-boot-starter:3.50.0")
 
-    // Resilience4j
+    // Resilience4j (circuit breaker, retry, time limiter, bulkhead)
     implementation("io.github.resilience4j:resilience4j-spring-boot3:2.3.0")
     implementation("io.github.resilience4j:resilience4j-reactor:2.3.0")
+    implementation("io.github.resilience4j:resilience4j-bulkhead:2.3.0")
 
     // Caching (reactive-safe in-process cache)
     implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
