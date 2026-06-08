@@ -227,7 +227,7 @@ first; HTTP is for reads):
 |--------|---------------------------------------|------------------------------|
 | GET    | `/api/v1/orders/{orderId}`            | Fetch a single order         |
 | GET    | `/api/v1/orders`                      | Paginate + filter orders     |
-| GET    | `/api/v1/orders/customer/{customerId}`| All orders for a customer    |
+| GET    | `/api/v1/orders/customer/{customerId}`| Paginated orders for a customer (`page`, `size` query params) |
 | GET    | `/actuator/health`                    | Health probe                 |
 | GET    | `/actuator/prometheus`                | Metrics in Prometheus format |
 
@@ -329,9 +329,7 @@ waits for Kafka/Mongo/Redis/Go API to report healthy before starting.
   methods).
 - Promote the dead-letter set to a real DLQ topic (e.g. `orders-dlq`)
   with a separate replay tool.
-- Wire structured JSON logging (`logstash-logback-encoder` is already a
-  dependency).
-- Add TimeLimiter and Bulkhead on the outbound HTTP adapters so a slow
-  Go API cannot saturate the worker.
-- Paginate `GET /api/v1/orders/customer/{customerId}` — currently
-  returns the full history for the customer.
+- Wire Micrometer Tracing OTLP exporter so the `traceId` / `spanId`
+  MDC values populated by `logback-spring.xml` propagate end-to-end.
+- Add a Bulkhead on the outbound HTTP adapters to bound concurrent
+  enrichment calls in addition to the existing TimeLimiter.
