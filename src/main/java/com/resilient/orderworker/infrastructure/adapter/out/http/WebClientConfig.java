@@ -39,8 +39,14 @@ public class WebClientConfig {
     @Value("${enricher-api.timeout.response:30000}")
     private long responseTimeoutMs;
 
+    /**
+     * The injected {@link WebClient.Builder} is the Spring-Boot-managed builder that already has
+     * the Micrometer observation and tracing registries wired in, so HTTP calls produce spans and
+     * propagate trace headers automatically when {@code micrometer-tracing-bridge-*} is on the
+     * classpath.
+     */
     @Bean("enricherApiWebClient")
-    public WebClient enricherApiWebClient() {
+    public WebClient enricherApiWebClient(WebClient.Builder builder) {
         HttpClient httpClient =
                 HttpClient.create()
                         .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeoutMs)
@@ -56,8 +62,7 @@ public class WebClientConfig {
                                                                 writeTimeoutMs,
                                                                 TimeUnit.MILLISECONDS)));
 
-        return WebClient.builder()
-                .baseUrl(baseUrl)
+        return builder.baseUrl(baseUrl)
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .codecs(c -> c.defaultCodecs().maxInMemorySize(MAX_IN_MEMORY_SIZE))
                 .build();

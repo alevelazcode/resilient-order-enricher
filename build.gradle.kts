@@ -44,6 +44,10 @@ dependencies {
     // Observability
     implementation("net.logstash.logback:logstash-logback-encoder:8.0")
     implementation("io.micrometer:micrometer-registry-prometheus")
+    // Tracing bridge: populates traceId / spanId in MDC and propagates spans
+    // through Observation. Exporter is intentionally not pinned so users can
+    // pick OTLP / Zipkin via env without dragging extra deps by default.
+    implementation("io.micrometer:micrometer-tracing-bridge-brave")
 
     // OpenAPI / Swagger UI
     implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.6.0")
