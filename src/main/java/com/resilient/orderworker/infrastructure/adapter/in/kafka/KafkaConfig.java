@@ -9,16 +9,22 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.ErrorHandlingDeserializer;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
@@ -27,8 +33,6 @@ import org.springframework.util.backoff.FixedBackOff;
 @Configuration
 @ConditionalOnProperty(name = "kafka.enabled", havingValue = "true", matchIfMissing = true)
 public class KafkaConfig {
-
-    private static final Logger LOG = LoggerFactory.getLogger(KafkaConfig.class);
 
     private final KafkaConsumerProperties properties;
 
@@ -64,28 +68,50 @@ public class KafkaConfig {
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
+    /**
+     * Producer used by {@link DeadLetterPublishingRecoverer} to forward poison-pill records to the
+     * DLQ topic. Idempotent producer + {@code acks=all} so a single record is never duplicated and
+     * never silently lost. Raw bytes (no schema) so the rejected payload reaches the DLQ exactly as
+     * it arrived, ready for inspection or replay.
+     */
+    @Bean
+    public ProducerFactory<Object, Object> dlqProducerFactory() {
+        Map<String, Object> props = new HashMap<>();
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.bootstrapServers());
+        props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class);
+        props.put(ProducerConfig.ACKS_CONFIG, "all");
+        props.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        return new DefaultKafkaProducerFactory<>(props);
+    }
+
+    @Bean
+    public KafkaTemplate<Object, Object> dlqKafkaTemplate(
+            ProducerFactory<Object, Object> dlqProducerFactory) {
+        return new KafkaTemplate<>(dlqProducerFactory);
+    }
+
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, OrderMessagePayload>
             kafkaListenerContainerFactory(
-                    ConsumerFactory<String, OrderMessagePayload> consumerFactory) {
+                    ConsumerFactory<String, OrderMessagePayload> consumerFactory,
+                    KafkaTemplate<Object, Object> dlqKafkaTemplate) {
         ConcurrentKafkaListenerContainerFactory<String, OrderMessagePayload> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
         factory.setConcurrency(properties.consumer().concurrency());
 
-        // Drop poison-pill records after a single attempt; the listener itself
-        // routes business failures into Redis for backoff-driven replay.
-        DefaultErrorHandler errorHandler =
-                new DefaultErrorHandler(
+        // Poison pills (deserialisation failures) are forwarded to the DLQ topic on the same
+        // partition, so an operator can replay them with standard kafka-console-consumer tooling.
+        // Business failures inside the listener continue to flow through the Redis retry store.
+        DeadLetterPublishingRecoverer recoverer =
+                new DeadLetterPublishingRecoverer(
+                        dlqKafkaTemplate,
                         (record, exception) ->
-                                LOG.error(
-                                        "Dropping unrecoverable record (topic={}, partition={}, offset={}): {}",
-                                        record.topic(),
-                                        record.partition(),
-                                        record.offset(),
-                                        exception.toString()),
-                        new FixedBackOff(0L, 0L));
+                                new TopicPartition(properties.topics().dlq(), record.partition()));
+        DefaultErrorHandler errorHandler =
+                new DefaultErrorHandler(recoverer, new FixedBackOff(0L, 0L));
         factory.setCommonErrorHandler(errorHandler);
 
         // Enable Micrometer observation for the container so polls and processing

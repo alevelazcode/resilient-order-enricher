@@ -22,10 +22,16 @@ public record KafkaConsumerProperties(
         consumer = consumer == null ? Consumer.defaults() : consumer;
     }
 
-    public record Topics(@NotBlank String orders) {
+    public record Topics(@NotBlank String orders, @NotBlank String dlq) {
+
+        public Topics {
+            if (dlq == null || dlq.isBlank()) {
+                dlq = orders + "-dlq";
+            }
+        }
 
         public static Topics defaults() {
-            return new Topics("orders");
+            return new Topics("orders", "orders-dlq");
         }
     }
 
