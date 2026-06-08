@@ -47,11 +47,6 @@ public class OrderMongoAdapter implements OrderRepository, OrderQueryRepository 
     }
 
     @Override
-    public Flux<Order> findByCustomerId(String customerId) {
-        return repository.findByCustomerId(customerId).map(OrderDocumentMapper::toDomain);
-    }
-
-    @Override
     public Flux<Order> findAll(int page, int size) {
         return repository.findAllBy(pageable(page, size)).map(OrderDocumentMapper::toDomain);
     }

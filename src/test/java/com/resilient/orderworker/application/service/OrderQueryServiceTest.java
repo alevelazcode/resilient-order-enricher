@@ -52,6 +52,48 @@ class OrderQueryServiceTest {
     }
 
     @Test
+    void findAll_filtersByCustomer() {
+        OrderQueryService service = new OrderQueryService(repository);
+
+        when(repository.findByCustomerId("c1", 0, 5)).thenReturn(Flux.just(sampleOrder()));
+        when(repository.countByCustomerId("c1")).thenReturn(Mono.just(1L));
+
+        StepVerifier.create(service.findAll(new QueryOrdersUseCase.PageQuery(0, 5, null, "c1")))
+                .assertNext(page -> assertThat(page.content()).hasSize(1))
+                .verifyComplete();
+    }
+
+    @Test
+    void findAll_filtersByStatusAndCustomer() {
+        OrderQueryService service = new OrderQueryService(repository);
+
+        when(repository.findByStatusAndCustomerId(OrderStatus.COMPLETED, "c1", 0, 5))
+                .thenReturn(Flux.just(sampleOrder()));
+        when(repository.countByStatusAndCustomerId(OrderStatus.COMPLETED, "c1"))
+                .thenReturn(Mono.just(1L));
+
+        StepVerifier.create(
+                        service.findAll(
+                                new QueryOrdersUseCase.PageQuery(
+                                        0, 5, OrderStatus.COMPLETED, "c1")))
+                .assertNext(page -> assertThat(page.content()).hasSize(1))
+                .verifyComplete();
+    }
+
+    @Test
+    void pageQuery_rejectsInvalidSize() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> new QueryOrdersUseCase.PageQuery(0, 0, null, null))
+                .isInstanceOf(IllegalArgumentException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> new QueryOrdersUseCase.PageQuery(0, 101, null, null))
+                .isInstanceOf(IllegalArgumentException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> new QueryOrdersUseCase.PageQuery(-1, 20, null, null))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void findAll_filtersByStatus() {
         OrderQueryService service = new OrderQueryService(repository);
 

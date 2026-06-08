@@ -17,8 +17,6 @@ public interface SpringDataOrderRepository extends ReactiveMongoRepository<Order
 
     Mono<Boolean> existsByOrderId(String orderId);
 
-    Flux<OrderDocument> findByCustomerId(String customerId);
-
     Flux<OrderDocument> findByCustomerId(String customerId, Pageable pageable);
 
     Flux<OrderDocument> findByStatus(String status, Pageable pageable);

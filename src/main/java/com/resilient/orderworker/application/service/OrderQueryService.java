@@ -30,11 +30,6 @@ public class OrderQueryService implements QueryOrdersUseCase {
     }
 
     @Override
-    public Flux<Order> findByCustomerId(String customerId) {
-        return orderQueryRepository.findByCustomerId(customerId);
-    }
-
-    @Override
     public Mono<Page<Order>> findAll(PageQuery query) {
         OrderStatus status = query.status();
         String customerId = query.customerId();

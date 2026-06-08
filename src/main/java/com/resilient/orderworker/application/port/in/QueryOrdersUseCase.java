@@ -8,14 +8,11 @@ package com.resilient.orderworker.application.port.in;
 import com.resilient.orderworker.domain.order.Order;
 import com.resilient.orderworker.domain.order.OrderStatus;
 
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface QueryOrdersUseCase {
 
     Mono<Order> findByOrderId(String orderId);
-
-    Flux<Order> findByCustomerId(String customerId);
 
     Mono<Page<Order>> findAll(PageQuery query);
 

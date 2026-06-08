@@ -19,8 +19,6 @@ public interface OrderQueryRepository {
 
     Mono<Order> findByOrderId(String orderId);
 
-    Flux<Order> findByCustomerId(String customerId);
-
     Flux<Order> findAll(int page, int size);
 
     Flux<Order> findByStatus(OrderStatus status, int page, int size);

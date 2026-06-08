@@ -23,7 +23,6 @@ import com.resilient.orderworker.application.port.in.QueryOrdersUseCase;
 import com.resilient.orderworker.domain.order.Order;
 import com.resilient.orderworker.domain.order.OrderLine;
 
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @WebFluxTest(controllers = OrderController.class)
@@ -36,8 +35,7 @@ class OrderControllerTest {
 
     @Test
     void getById_returnsOrder() {
-        Order order = sample();
-        when(queryOrders.findByOrderId("o1")).thenReturn(Mono.just(order));
+        when(queryOrders.findByOrderId("o1")).thenReturn(Mono.just(sample()));
 
         webTestClient
                 .get()
@@ -70,6 +68,23 @@ class OrderControllerTest {
     }
 
     @Test
+    void getById_returns500OnUpstreamError() {
+        when(queryOrders.findByOrderId("boom"))
+                .thenReturn(Mono.error(new RuntimeException("db down")));
+
+        webTestClient
+                .get()
+                .uri("/api/v1/orders/boom")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus()
+                .is5xxServerError()
+                .expectBody()
+                .jsonPath("$.code")
+                .isEqualTo("INTERNAL_ERROR");
+    }
+
+    @Test
     void list_returnsPage() {
         when(queryOrders.findAll(any()))
                 .thenReturn(Mono.just(new QueryOrdersUseCase.Page<>(List.of(sample()), 0, 20, 1L)));
@@ -89,19 +104,37 @@ class OrderControllerTest {
     }
 
     @Test
-    void getByCustomer_returns200WithEmptyArrayWhenEmpty() {
-        when(queryOrders.findByCustomerId("c1")).thenReturn(Flux.empty());
+    void list_rejectsInvalidPageSize() {
+        webTestClient
+                .get()
+                .uri("/api/v1/orders?size=500")
+                .accept(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus()
+                .isBadRequest()
+                .expectBody()
+                .jsonPath("$.code")
+                .isEqualTo("INVALID_REQUEST");
+    }
+
+    @Test
+    void getByCustomer_returnsEmptyPageWhenNoOrders() {
+        when(queryOrders.findAll(any()))
+                .thenReturn(Mono.just(new QueryOrdersUseCase.Page<>(List.of(), 0, 20, 0L)));
 
         webTestClient
                 .get()
                 .uri("/api/v1/orders/customer/c1")
+                .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .expectStatus()
                 .isOk()
                 .expectBody()
-                .jsonPath("$")
+                .jsonPath("$.content")
                 .isArray()
-                .jsonPath("$.length()")
+                .jsonPath("$.content.length()")
+                .isEqualTo(0)
+                .jsonPath("$.totalElements")
                 .isEqualTo(0);
     }
 

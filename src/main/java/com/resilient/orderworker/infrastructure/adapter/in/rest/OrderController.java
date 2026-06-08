@@ -19,7 +19,6 @@ import com.resilient.orderworker.domain.order.OrderStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -56,9 +55,14 @@ public class OrderController {
         return queryOrders.findAll(query).map(p -> PageResponse.from(p, OrderResponse::from));
     }
 
-    @Operation(summary = "Get orders by customer ID (empty list returns 200)")
+    @Operation(summary = "Get orders by customer ID with pagination (empty page returns 200)")
     @GetMapping("/customer/{customerId}")
-    public Flux<OrderResponse> getOrdersByCustomer(@PathVariable String customerId) {
-        return queryOrders.findByCustomerId(customerId).map(OrderResponse::from);
+    public Mono<PageResponse<OrderResponse>> getOrdersByCustomer(
+            @PathVariable String customerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        QueryOrdersUseCase.PageQuery query =
+                new QueryOrdersUseCase.PageQuery(page, size, null, customerId);
+        return queryOrders.findAll(query).map(p -> PageResponse.from(p, OrderResponse::from));
     }
 }
