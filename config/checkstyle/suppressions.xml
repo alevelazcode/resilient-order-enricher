@@ -18,9 +18,10 @@
     <suppress checks="HiddenField" files=".*Document\.java"/>
     <suppress checks="ParameterNumber" files=".*Document\.java"/>
 
-    <!-- Config/Adapter classes may use numeric literals for timeouts, sizes, retries. -->
+    <!-- Config/Adapter/Properties classes may use numeric literals for timeouts, sizes, retries. -->
     <suppress checks="MagicNumber" files=".*Config\.java"/>
     <suppress checks="MagicNumber" files=".*Adapter\.java"/>
+    <suppress checks="MagicNumber" files=".*Properties\.java"/>
 
     <!-- googleJavaFormat AOSP produces inline empty bodies "{ }" that Checkstyle flags. -->
     <suppress checks="WhitespaceAround" files=".*\.java" lines="1-1000"/>

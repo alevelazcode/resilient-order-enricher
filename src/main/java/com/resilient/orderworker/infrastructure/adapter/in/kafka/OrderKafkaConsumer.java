@@ -9,7 +9,6 @@ import java.time.Duration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
@@ -50,7 +49,14 @@ public class OrderKafkaConsumer {
     public OrderKafkaConsumer(
             ProcessOrderUseCase processOrder,
             FailedMessageStore failedMessageStore,
-            @Value("${kafka.consumer.processing-timeout:30s}") Duration processingTimeout) {
+            KafkaConsumerProperties properties) {
+        this(processOrder, failedMessageStore, properties.consumer().processingTimeout());
+    }
+
+    OrderKafkaConsumer(
+            ProcessOrderUseCase processOrder,
+            FailedMessageStore failedMessageStore,
+            Duration processingTimeout) {
         this.processOrder = processOrder;
         this.failedMessageStore = failedMessageStore;
         this.processingTimeout = processingTimeout;

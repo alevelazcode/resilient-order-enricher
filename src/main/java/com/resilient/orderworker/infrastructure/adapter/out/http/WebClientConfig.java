@@ -5,10 +5,8 @@
  */
 package com.resilient.orderworker.infrastructure.adapter.out.http;
 
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -24,21 +22,6 @@ public class WebClientConfig {
 
     private static final int MAX_IN_MEMORY_SIZE = 1024 * 1024;
 
-    @Value("${enricher-api.base-url:http://localhost:8080}")
-    private String baseUrl;
-
-    @Value("${enricher-api.timeout.connect:5000}")
-    private int connectTimeoutMs;
-
-    @Value("${enricher-api.timeout.read:10000}")
-    private int readTimeoutMs;
-
-    @Value("${enricher-api.timeout.write:10000}")
-    private int writeTimeoutMs;
-
-    @Value("${enricher-api.timeout.response:30000}")
-    private long responseTimeoutMs;
-
     /**
      * The injected {@link WebClient.Builder} is the Spring-Boot-managed builder that already has
      * the Micrometer observation and tracing registries wired in, so HTTP calls produce spans and
@@ -46,23 +29,25 @@ public class WebClientConfig {
      * classpath.
      */
     @Bean("enricherApiWebClient")
-    public WebClient enricherApiWebClient(WebClient.Builder builder) {
+    public WebClient enricherApiWebClient(
+            WebClient.Builder builder, EnricherApiProperties properties) {
+        EnricherApiProperties.Timeout t = properties.timeout();
         HttpClient httpClient =
                 HttpClient.create()
-                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectTimeoutMs)
-                        .responseTimeout(Duration.ofMillis(responseTimeoutMs))
+                        .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, (int) t.connect().toMillis())
+                        .responseTimeout(t.response())
                         .doOnConnected(
                                 conn ->
                                         conn.addHandlerLast(
                                                         new ReadTimeoutHandler(
-                                                                readTimeoutMs,
+                                                                t.read().toMillis(),
                                                                 TimeUnit.MILLISECONDS))
                                                 .addHandlerLast(
                                                         new WriteTimeoutHandler(
-                                                                writeTimeoutMs,
+                                                                t.write().toMillis(),
                                                                 TimeUnit.MILLISECONDS)));
 
-        return builder.baseUrl(baseUrl)
+        return builder.baseUrl(properties.baseUrl())
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .codecs(c -> c.defaultCodecs().maxInMemorySize(MAX_IN_MEMORY_SIZE))
                 .build();

@@ -12,7 +12,6 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,28 +30,20 @@ public class KafkaConfig {
 
     private static final Logger LOG = LoggerFactory.getLogger(KafkaConfig.class);
 
-    @Value("${kafka.bootstrap-servers:localhost:9092}")
-    private String bootstrapServers;
+    private final KafkaConsumerProperties properties;
 
-    @Value("${kafka.consumer.group-id:order-worker-group}")
-    private String groupId;
-
-    @Value("${kafka.consumer.auto-offset-reset:earliest}")
-    private String autoOffsetReset;
-
-    @Value("${kafka.consumer.max-poll-records:10}")
-    private int maxPollRecords;
-
-    @Value("${kafka.consumer.concurrency:3}")
-    private int concurrency;
+    public KafkaConfig(KafkaConsumerProperties properties) {
+        this.properties = properties;
+    }
 
     @Bean
     public ConsumerFactory<String, OrderMessagePayload> orderConsumerFactory() {
+        KafkaConsumerProperties.Consumer c = properties.consumer();
         Map<String, Object> props = new HashMap<>();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
-        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
-        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, maxPollRecords);
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, properties.bootstrapServers());
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, c.groupId());
+        props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, c.autoOffsetReset());
+        props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, c.maxPollRecords());
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
 
         // Wrap deserializers with ErrorHandlingDeserializer so a poisoned record
@@ -81,7 +72,7 @@ public class KafkaConfig {
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
-        factory.setConcurrency(concurrency);
+        factory.setConcurrency(properties.consumer().concurrency());
 
         // Drop poison-pill records after a single attempt; the listener itself
         // routes business failures into Redis for backoff-driven replay.
