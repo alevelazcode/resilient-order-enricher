@@ -109,11 +109,13 @@ class OrderKafkaConsumerTest {
     }
 
     private static Order sampleOrder() {
-        return Order.create(
+        return Order.fromLines(
                 "o1",
                 "c1",
                 "Alice",
                 "ACTIVE",
-                List.of(new OrderLine("p1", "L", "d", new BigDecimal("10"), 1)));
+                List.of(new OrderLine("p1", "L", "d", new BigDecimal("10"), 1)),
+                java.time.Instant.parse("2026-01-01T00:00:00Z"),
+                com.resilient.orderworker.domain.order.OrderStatus.COMPLETED);
     }
 }

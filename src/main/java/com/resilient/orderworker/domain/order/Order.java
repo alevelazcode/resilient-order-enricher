@@ -33,12 +33,18 @@ public record Order(
         lines = List.copyOf(lines);
     }
 
-    public static Order create(
+    /**
+     * Build an {@link Order} from already-validated lines. The total is computed from the lines so
+     * callers cannot pass an inconsistent {@code totalAmount}.
+     */
+    public static Order fromLines(
             String orderId,
             String customerId,
             String customerName,
             String customerStatus,
-            List<OrderLine> lines) {
+            List<OrderLine> lines,
+            Instant processedAt,
+            OrderStatus status) {
         BigDecimal total =
                 lines.stream().map(OrderLine::subtotal).reduce(BigDecimal.ZERO, BigDecimal::add);
         return new Order(
@@ -48,7 +54,7 @@ public record Order(
                 customerStatus,
                 lines,
                 total,
-                Instant.now(),
-                OrderStatus.COMPLETED);
+                processedAt,
+                status);
     }
 }

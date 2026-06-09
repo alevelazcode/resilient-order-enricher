@@ -12,8 +12,8 @@ import reactor.core.publisher.Mono;
 
 public interface DistributedLock {
 
-    <T> Mono<T> executeWithLock(String key, Supplier<Mono<T>> task);
+    <T> Mono<T> executeWithLock(LockKey key, Supplier<Mono<T>> task);
 
     <T> Mono<T> executeWithLock(
-            String key, Duration waitTime, Duration leaseTime, Supplier<Mono<T>> task);
+            LockKey key, Duration waitTime, Duration leaseTime, Supplier<Mono<T>> task);
 }

@@ -12,24 +12,29 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
 
 import com.resilient.orderworker.application.command.ProcessOrderCommand;
 import com.resilient.orderworker.application.port.in.ProcessOrderUseCase;
 import com.resilient.orderworker.application.port.out.CustomerProvider;
 import com.resilient.orderworker.application.port.out.DistributedLock;
+import com.resilient.orderworker.application.port.out.LockKey;
 import com.resilient.orderworker.application.port.out.OrderRepository;
 import com.resilient.orderworker.application.port.out.ProductProvider;
 import com.resilient.orderworker.domain.customer.Customer;
-import com.resilient.orderworker.domain.exception.OrderProcessingException;
 import com.resilient.orderworker.domain.order.Order;
-import com.resilient.orderworker.domain.order.OrderLine;
+import com.resilient.orderworker.domain.order.OrderAssembler;
+import com.resilient.orderworker.domain.order.OrderValidator;
 import com.resilient.orderworker.domain.product.Product;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@Service
+/**
+ * Application service. Pure POJO — no Spring annotations. Wired into the context by {@link
+ * com.resilient.orderworker.infrastructure.config.ApplicationServicesConfig}. Its sole job is
+ * orchestration: acquire the lock, ensure idempotency, fan-out enrichment, delegate validation and
+ * assembly to the domain services, persist.
+ */
 public class OrderProcessor implements ProcessOrderUseCase {
 
     private static final Logger LOG = LoggerFactory.getLogger(OrderProcessor.class);
@@ -39,104 +44,70 @@ public class OrderProcessor implements ProcessOrderUseCase {
     private final CustomerProvider customerProvider;
     private final ProductProvider productProvider;
     private final DistributedLock distributedLock;
+    private final OrderValidator validator;
+    private final OrderAssembler assembler;
 
     public OrderProcessor(
             OrderRepository orderRepository,
             CustomerProvider customerProvider,
             ProductProvider productProvider,
-            DistributedLock distributedLock) {
+            DistributedLock distributedLock,
+            OrderValidator validator,
+            OrderAssembler assembler) {
         this.orderRepository = orderRepository;
         this.customerProvider = customerProvider;
         this.productProvider = productProvider;
         this.distributedLock = distributedLock;
+        this.validator = validator;
+        this.assembler = assembler;
     }
 
     @Override
     public Mono<Order> process(ProcessOrderCommand command) {
         return distributedLock.executeWithLock(
-                "order-lock:" + command.orderId(), () -> processIdempotent(command));
+                LockKey.forOrder(command.orderId()), () -> processIdempotent(command));
     }
 
     private Mono<Order> processIdempotent(ProcessOrderCommand command) {
         return orderRepository
                 .existsByOrderId(command.orderId())
-                .flatMap(
-                        exists -> {
-                            if (exists) {
-                                LOG.info("Order {} already processed, skipping", command.orderId());
-                                return orderRepository.findByOrderId(command.orderId());
-                            }
-                            return enrich(command);
-                        });
+                .flatMap(exists -> exists ? loadExisting(command) : enrichAndPersist(command));
     }
 
-    private Mono<Order> enrich(ProcessOrderCommand command) {
-        Mono<Customer> customerMono = customerProvider.getCustomer(command.customerId());
+    private Mono<Order> loadExisting(ProcessOrderCommand command) {
+        LOG.info("Order {} already processed, skipping", command.orderId());
+        return orderRepository.findByOrderId(command.orderId());
+    }
 
+    private Mono<Order> enrichAndPersist(ProcessOrderCommand command) {
+        Mono<Customer> customerMono = customerProvider.getCustomer(command.customerId());
+        Mono<Map<String, Product>> productsMono = fetchProducts(command);
+
+        return Mono.zip(customerMono, productsMono)
+                .map(t -> assembleValidated(command, t.getT1(), t.getT2()))
+                .flatMap(orderRepository::save)
+                .doOnSuccess(order -> LOG.info("Order {} processed", order.orderId()))
+                .doOnError(
+                        err -> LOG.warn("Order {} failed: {}", command.orderId(), err.toString()));
+    }
+
+    private Mono<Map<String, Product>> fetchProducts(ProcessOrderCommand command) {
         List<String> productIds =
                 command.lines().stream()
                         .map(ProcessOrderCommand.Line::productId)
                         .distinct()
                         .toList();
-
-        Mono<List<Product>> productsMono =
-                Flux.fromIterable(productIds)
-                        .flatMap(productProvider::getProduct, ENRICHMENT_CONCURRENCY)
-                        .collectList();
-
-        return Mono.zip(customerMono, productsMono)
-                .flatMap(tuple -> buildAndSave(command, tuple.getT1(), tuple.getT2()))
-                .doOnSuccess(order -> LOG.info("Order {} processed", command.orderId()))
-                .doOnError(
-                        err -> LOG.warn("Order {} failed: {}", command.orderId(), err.toString()));
+        return Flux.fromIterable(productIds)
+                .flatMap(productProvider::getProduct, ENRICHMENT_CONCURRENCY)
+                .collect(Collectors.toMap(Product::productId, Function.identity()));
     }
 
-    private Mono<Order> buildAndSave(
-            ProcessOrderCommand command, Customer customer, List<Product> products) {
-        if (!customer.isActive()) {
-            return Mono.error(
-                    new OrderProcessingException(
-                            "Customer is not active: " + customer.customerId()));
-        }
-
-        Map<String, Product> productById =
-                products.stream()
-                        .collect(Collectors.toMap(Product::productId, Function.identity()));
-
-        for (ProcessOrderCommand.Line line : command.lines()) {
-            Product p = productById.get(line.productId());
-            if (p == null) {
-                return Mono.error(
-                        new OrderProcessingException("Product not found: " + line.productId()));
-            }
-            if (!p.isValid()) {
-                return Mono.error(
-                        new OrderProcessingException("Invalid product: " + line.productId()));
-            }
-        }
-
-        List<OrderLine> orderLines =
-                command.lines().stream()
-                        .map(
-                                line -> {
-                                    Product p = productById.get(line.productId());
-                                    return new OrderLine(
-                                            p.productId(),
-                                            p.name(),
-                                            p.description(),
-                                            p.price(),
-                                            line.quantity());
-                                })
-                        .toList();
-
-        Order order =
-                Order.create(
-                        command.orderId(),
-                        customer.customerId(),
-                        customer.name(),
-                        customer.status(),
-                        orderLines);
-
-        return orderRepository.save(order);
+    private Order assembleValidated(
+            ProcessOrderCommand command, Customer customer, Map<String, Product> productById) {
+        validator.requireActiveCustomer(customer);
+        validator.requireAllProductsResolved(
+                command.lines().stream().map(ProcessOrderCommand.Line::productId).toList(),
+                productById);
+        return assembler.assemble(command, customer, productById);
     }
 }

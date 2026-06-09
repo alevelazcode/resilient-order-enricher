@@ -110,11 +110,13 @@ class OrderQueryServiceTest {
     }
 
     private Order sampleOrder() {
-        return Order.create(
+        return Order.fromLines(
                 "o1",
                 "c1",
                 "Alice",
                 "ACTIVE",
-                List.of(new OrderLine("p1", "P", "d", new BigDecimal("10"), 1)));
+                List.of(new OrderLine("p1", "P", "d", new BigDecimal("10"), 1)),
+                java.time.Instant.parse("2026-01-01T00:00:00Z"),
+                OrderStatus.COMPLETED);
     }
 }

@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import com.resilient.orderworker.application.port.in.QueryOrdersUseCase;
 import com.resilient.orderworker.domain.order.Order;
 import com.resilient.orderworker.domain.order.OrderLine;
+import com.resilient.orderworker.domain.order.OrderStatus;
 
 import reactor.core.publisher.Mono;
 
@@ -139,11 +141,13 @@ class OrderControllerTest {
     }
 
     private Order sample() {
-        return Order.create(
+        return Order.fromLines(
                 "o1",
                 "c1",
                 "Alice",
                 "ACTIVE",
-                List.of(new OrderLine("p1", "Laptop", "d", new BigDecimal("10"), 1)));
+                List.of(new OrderLine("p1", "Laptop", "d", new BigDecimal("10"), 1)),
+                Instant.parse("2026-01-01T00:00:00Z"),
+                OrderStatus.COMPLETED);
     }
 }

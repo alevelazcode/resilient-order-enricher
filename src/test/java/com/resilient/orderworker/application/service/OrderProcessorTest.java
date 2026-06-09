@@ -6,12 +6,14 @@
 package com.resilient.orderworker.application.service;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -29,6 +31,10 @@ import com.resilient.orderworker.application.port.out.ProductProvider;
 import com.resilient.orderworker.domain.customer.Customer;
 import com.resilient.orderworker.domain.exception.OrderProcessingException;
 import com.resilient.orderworker.domain.order.Order;
+import com.resilient.orderworker.domain.order.OrderAssembler;
+import com.resilient.orderworker.domain.order.OrderLine;
+import com.resilient.orderworker.domain.order.OrderStatus;
+import com.resilient.orderworker.domain.order.OrderValidator;
 import com.resilient.orderworker.domain.product.Product;
 
 import reactor.core.publisher.Mono;
@@ -36,6 +42,8 @@ import reactor.test.StepVerifier;
 
 @ExtendWith(MockitoExtension.class)
 class OrderProcessorTest {
+
+    private static final Instant FIXED_TIME = Instant.parse("2026-01-01T00:00:00Z");
 
     @Mock private OrderRepository orderRepository;
     @Mock private CustomerProvider customerProvider;
@@ -46,9 +54,17 @@ class OrderProcessorTest {
 
     @BeforeEach
     void setUp() {
+        Clock fixedClock = Clock.fixed(FIXED_TIME, ZoneOffset.UTC);
+        OrderValidator validator = new OrderValidator();
+        OrderAssembler assembler = new OrderAssembler(fixedClock);
         processor =
                 new OrderProcessor(
-                        orderRepository, customerProvider, productProvider, distributedLock);
+                        orderRepository,
+                        customerProvider,
+                        productProvider,
+                        distributedLock,
+                        validator,
+                        assembler);
         when(distributedLock.executeWithLock(any(), any()))
                 .thenAnswer(
                         inv -> {
@@ -78,6 +94,8 @@ class OrderProcessorTest {
                             org.assertj.core.api.Assertions.assertThat(order.totalAmount())
                                     .isEqualByComparingTo(new BigDecimal("1999.98"));
                             org.assertj.core.api.Assertions.assertThat(order.lines()).hasSize(1);
+                            org.assertj.core.api.Assertions.assertThat(order.processedAt())
+                                    .isEqualTo(FIXED_TIME);
                         })
                 .verifyComplete();
 
@@ -89,14 +107,14 @@ class OrderProcessorTest {
         ProcessOrderCommand cmd =
                 new ProcessOrderCommand("o1", "c1", List.of(new ProcessOrderCommand.Line("p1", 1)));
         Order existing =
-                Order.create(
+                Order.fromLines(
                         "o1",
                         "c1",
                         "Alice",
                         "ACTIVE",
-                        List.of(
-                                new com.resilient.orderworker.domain.order.OrderLine(
-                                        "p1", "n", "d", BigDecimal.ONE, 1)));
+                        List.of(new OrderLine("p1", "n", "d", BigDecimal.ONE, 1)),
+                        FIXED_TIME,
+                        OrderStatus.COMPLETED);
 
         when(orderRepository.existsByOrderId("o1")).thenReturn(Mono.just(true));
         when(orderRepository.findByOrderId("o1")).thenReturn(Mono.just(existing));
@@ -132,7 +150,7 @@ class OrderProcessorTest {
         Customer customer = new Customer("c1", "Alice", "ACTIVE");
         Product invalid = new Product("p1", "", "d", new BigDecimal("10"));
 
-        when(orderRepository.existsByOrderId(eq("o1"))).thenReturn(Mono.just(false));
+        when(orderRepository.existsByOrderId("o1")).thenReturn(Mono.just(false));
         when(customerProvider.getCustomer("c1")).thenReturn(Mono.just(customer));
         when(productProvider.getProduct("p1")).thenReturn(Mono.just(invalid));
 

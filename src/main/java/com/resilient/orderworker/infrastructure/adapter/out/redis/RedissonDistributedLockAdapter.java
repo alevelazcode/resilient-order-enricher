@@ -18,6 +18,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import com.resilient.orderworker.application.port.out.DistributedLock;
+import com.resilient.orderworker.application.port.out.LockKey;
 import com.resilient.orderworker.domain.exception.OrderProcessingException;
 
 import reactor.core.publisher.Mono;
@@ -37,26 +38,31 @@ public class RedissonDistributedLockAdapter implements DistributedLock {
     }
 
     @Override
-    public <T> Mono<T> executeWithLock(String key, Supplier<Mono<T>> task) {
+    public <T> Mono<T> executeWithLock(LockKey key, Supplier<Mono<T>> task) {
         return executeWithLock(key, DEFAULT_WAIT, DEFAULT_LEASE, task);
     }
 
     @Override
     public <T> Mono<T> executeWithLock(
-            String key, Duration waitTime, Duration leaseTime, Supplier<Mono<T>> task) {
-        RLockReactive lock = reactive.getLock(key);
+            LockKey key, Duration waitTime, Duration leaseTime, Supplier<Mono<T>> task) {
+        String keyString = key.asString();
+        RLockReactive lock = reactive.getLock(keyString);
         return lock.tryLock(waitTime.toMillis(), leaseTime.toMillis(), TimeUnit.MILLISECONDS)
                 .flatMap(
                         acquired -> {
                             if (Boolean.FALSE.equals(acquired)) {
                                 return Mono.error(
                                         new OrderProcessingException(
-                                                "Could not acquire lock: " + key));
+                                                "Could not acquire lock: " + keyString));
                             }
                             return task.get()
-                                    .flatMap(result -> safeUnlock(lock, key).thenReturn(result))
+                                    .flatMap(
+                                            result ->
+                                                    safeUnlock(lock, keyString).thenReturn(result))
                                     .onErrorResume(
-                                            err -> safeUnlock(lock, key).then(Mono.error(err)));
+                                            err ->
+                                                    safeUnlock(lock, keyString)
+                                                            .then(Mono.error(err)));
                         });
     }
 

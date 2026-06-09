@@ -11,39 +11,27 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import com.resilient.orderworker.application.port.out.OrderQueryRepository;
-import com.resilient.orderworker.application.port.out.OrderRepository;
 import com.resilient.orderworker.domain.order.Order;
 import com.resilient.orderworker.domain.order.OrderStatus;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/** Read-side Mongo adapter: pageable lookups + counts, no mutations. */
 @Component
-public class OrderMongoAdapter implements OrderRepository, OrderQueryRepository {
+public class OrderMongoQueryAdapter implements OrderQueryRepository {
 
     private static final Sort DEFAULT_SORT = Sort.by(Sort.Direction.DESC, "processedAt");
 
     private final SpringDataOrderRepository repository;
 
-    public OrderMongoAdapter(SpringDataOrderRepository repository) {
+    public OrderMongoQueryAdapter(SpringDataOrderRepository repository) {
         this.repository = repository;
-    }
-
-    @Override
-    public Mono<Order> save(Order order) {
-        return repository
-                .save(OrderDocumentMapper.toDocument(order))
-                .map(OrderDocumentMapper::toDomain);
     }
 
     @Override
     public Mono<Order> findByOrderId(String orderId) {
         return repository.findByOrderId(orderId).map(OrderDocumentMapper::toDomain);
-    }
-
-    @Override
-    public Mono<Boolean> existsByOrderId(String orderId) {
-        return repository.existsByOrderId(orderId);
     }
 
     @Override

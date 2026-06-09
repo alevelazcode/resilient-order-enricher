@@ -9,6 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -16,21 +17,40 @@ import org.junit.jupiter.api.Test;
 class OrderTest {
 
     @Test
-    void create_computesTotalAndDefaults() {
+    void fromLines_computesTotalFromLines() {
         OrderLine line1 = new OrderLine("p1", "P1", "d", new BigDecimal("10.00"), 2);
         OrderLine line2 = new OrderLine("p2", "P2", "d", new BigDecimal("5.50"), 4);
+        Instant now = Instant.parse("2026-01-01T00:00:00Z");
 
-        Order order = Order.create("o1", "c1", "Alice", "ACTIVE", List.of(line1, line2));
+        Order order =
+                Order.fromLines(
+                        "o1",
+                        "c1",
+                        "Alice",
+                        "ACTIVE",
+                        List.of(line1, line2),
+                        now,
+                        OrderStatus.COMPLETED);
 
         assertThat(order.totalAmount()).isEqualByComparingTo(new BigDecimal("42.00"));
         assertThat(order.status()).isEqualTo(OrderStatus.COMPLETED);
-        assertThat(order.processedAt()).isNotNull();
+        assertThat(order.processedAt()).isEqualTo(now);
         assertThat(order.lines()).hasSize(2);
     }
 
     @Test
     void rejectsEmptyLines() {
-        assertThatThrownBy(() -> Order.create("o1", "c1", "n", "ACTIVE", List.of()))
+        Instant now = Instant.parse("2026-01-01T00:00:00Z");
+        assertThatThrownBy(
+                        () ->
+                                Order.fromLines(
+                                        "o1",
+                                        "c1",
+                                        "n",
+                                        "ACTIVE",
+                                        List.of(),
+                                        now,
+                                        OrderStatus.COMPLETED))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
