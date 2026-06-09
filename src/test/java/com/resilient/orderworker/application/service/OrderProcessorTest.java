@@ -144,6 +144,23 @@ class OrderProcessorTest {
     }
 
     @Test
+    void processOrder_failsLoudlyOnIdempotencyRace() {
+        // exists=true but the order vanished between the two reads. Before the fix, block() on
+        // the consumer would have returned null and silently acked Kafka without persisting.
+        ProcessOrderCommand cmd =
+                new ProcessOrderCommand("o1", "c1", List.of(new ProcessOrderCommand.Line("p1", 1)));
+        when(orderRepository.existsByOrderId("o1")).thenReturn(Mono.just(true));
+        when(orderRepository.findByOrderId("o1")).thenReturn(Mono.empty());
+
+        StepVerifier.create(processor.process(cmd))
+                .expectErrorMatches(
+                        e ->
+                                e instanceof IllegalStateException
+                                        && e.getMessage().contains("reported as existing"))
+                .verify();
+    }
+
+    @Test
     void processOrder_failsWhenProductInvalid() {
         ProcessOrderCommand cmd =
                 new ProcessOrderCommand("o1", "c1", List.of(new ProcessOrderCommand.Line("p1", 1)));
