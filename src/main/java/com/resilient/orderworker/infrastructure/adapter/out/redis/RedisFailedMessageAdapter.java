@@ -39,6 +39,10 @@ public class RedisFailedMessageAdapter implements FailedMessageStore {
     private static final String DEAD_LETTER_PREFIX = "dead_letter:";
     private static final String DEAD_LETTER_SET = "dead_letter_queue";
 
+    // Hard cap so orphaned counters / payloads (from a crash between increment and cleanup)
+    // age out instead of accumulating forever in Redis.
+    private static final long ORPHAN_TTL_HOURS = 24;
+
     private final RedissonClient redisson;
     private final ObjectMapper objectMapper;
     private final BackoffPolicy backoffPolicy;
@@ -100,9 +104,13 @@ public class RedisFailedMessageAdapter implements FailedMessageStore {
         long nextRetryEpoch = System.currentTimeMillis() + delay.toMillis();
         FailedMessage message = new FailedMessage(command, attempts, nextRetryEpoch);
 
-        redisson.getBucket(MESSAGE_PREFIX + orderId).set(serialize(message, orderId));
-        redisson.getBucket(NEXT_RETRY_PREFIX + orderId).set(nextRetryEpoch);
+        redisson.getBucket(MESSAGE_PREFIX + orderId)
+                .set(serialize(message, orderId), Duration.ofHours(ORPHAN_TTL_HOURS));
+        redisson.getBucket(NEXT_RETRY_PREFIX + orderId)
+                .set(nextRetryEpoch, Duration.ofHours(ORPHAN_TTL_HOURS));
+        attemptsCounter.expire(Duration.ofHours(ORPHAN_TTL_HOURS));
         redisson.<String>getSet(FAILED_SET).add(orderId);
+        redisson.<String>getSet(FAILED_SET).expire(Duration.ofDays(7));
 
         LOG.warn(
                 "Stored failed message {} (attempt {}/{}, next retry in {}ms): {}",

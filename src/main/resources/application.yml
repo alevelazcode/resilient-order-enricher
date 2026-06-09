@@ -17,9 +17,12 @@ spring:
 
 server:
   port: ${SERVER_PORT:8081}
+  shutdown: graceful
   error:
     include-message: always
     include-binding-errors: always
+
+spring.lifecycle.timeout-per-shutdown-phase: 30s
 
 management:
   endpoints:

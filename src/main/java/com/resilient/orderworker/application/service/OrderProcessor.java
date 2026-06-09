@@ -76,7 +76,14 @@ public class OrderProcessor implements ProcessOrderUseCase {
 
     private Mono<Order> loadExisting(ProcessOrderCommand command) {
         LOG.info("Order {} already processed, skipping", command.orderId());
-        return orderRepository.findByOrderId(command.orderId());
+        return orderRepository
+                .findByOrderId(command.orderId())
+                .switchIfEmpty(
+                        Mono.error(
+                                new IllegalStateException(
+                                        "Order "
+                                                + command.orderId()
+                                                + " reported as existing but could not be loaded")));
     }
 
     private Mono<Order> enrichAndPersist(ProcessOrderCommand command) {
